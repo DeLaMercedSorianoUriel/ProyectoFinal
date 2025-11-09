@@ -24,7 +24,7 @@
 #include "Camera.h"
 #include "Model.h"
 // =================================================================================
-// 	CONFIGURACIÓN INICIAL Y VARIABLES GLOBALES
+// 	CONFIGURACIï¿½N INICIAL Y VARIABLES GLOBALES
 // =================================================================================
 
 // Funciones prototipo para callbacks
@@ -37,7 +37,7 @@ const GLuint WIDTH = 1000, HEIGHT = 800;
 int SCREEN_WIDTH, SCREEN_HEIGHT;
 
 
-// Configuración de la cámara
+// Configuraciï¿½n de la cï¿½mara
 Camera  camera(glm::vec3(0.0f, 0.0f, 3.0f));
 GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
@@ -58,13 +58,13 @@ glm::vec3 pointLightPositions[] = {
 };
 
 // ---------------------------------------------------------------------------------
-//VARIABLES PARA ANIMACIÓN Y MOVIMIENTO DE OBJETOS
+//VARIABLES PARA ANIMACIï¿½N Y MOVIMIENTO DE OBJETOS
 // ---------------------------------------------------------------------------------
 float hombro_rot = 0.0f;
 float codo_rot = 0.0f;
-float tiempo_animacion = 0.0f; // Variable para animaciones automáticas
+float tiempo_animacion = 0.0f; // Variable para animaciones automï¿½ticas
 
-// Vértices del cubo CON COORDENADAS DE TEXTURA
+// Vï¿½rtices del cubo CON COORDENADAS DE TEXTURA
 float vertices[] = {
 	// Posiciones           // Normales           // Coordenadas de Textura (U, V)
 	// Cara Trasera (-Z)
@@ -125,16 +125,16 @@ glm::vec3 Light1 = glm::vec3(0);
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
 GLfloat lastFrame = 0.0f;  	// Time of last frame
 
-// Función para dibujar una parte del brazo con textura
+// Funciï¿½n para dibujar una parte del brazo con textura
 void pataDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint uniformModel, GLuint VAO, GLuint texturaID)
 {
 	// 1. Configurar la matriz del modelo para esta parte
 	modelo = glm::mat4(1);
-	modelo = glm::scale(modelo, escala); // tamaño
-	modelo = glm::translate(modelo, traslado);// posición
+	modelo = glm::scale(modelo, escala); // tamaï¿½o
+	modelo = glm::translate(modelo, traslado);// posiciï¿½n
 	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(modelo));
 
-	// 2. Activar y enlazar la textura específica para esta parte
+	// 2. Activar y enlazar la textura especï¿½fica para esta parte
 	//    Asumimos que el shader ya tiene los uniforms de sampler (material.diffuse = 0, material.specular = 1)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texturaID);
@@ -144,16 +144,16 @@ void pataDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint unif
 	// 3. Enlazar el VAO del cubo
 	glBindVertexArray(VAO);
 
-	// 4. *** CRÍTICO *** Habilitar TODOS los atributos que usa lightingShader
-	// (El lampShader los deshabilita, así que hay que volver a habilitarlos)
-	glEnableVertexAttribArray(0); // Posición
+	// 4. *** CRï¿½TICO *** Habilitar TODOS los atributos que usa lightingShader
+	// (El lampShader los deshabilita, asï¿½ que hay que volver a habilitarlos)
+	glEnableVertexAttribArray(0); // Posiciï¿½n
 	glEnableVertexAttribArray(1); // Normal
 	glEnableVertexAttribArray(2); // TexCoords
 
 	// 5. Dibujar el cubo
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
-	// 6. Desvincular (buena práctica)
+	// 6. Desvincular (buena prï¿½ctica)
 	glBindVertexArray(0);
 }
 
@@ -161,8 +161,8 @@ void cuboDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint unif
 {
 	// 1. Configurar la matriz del modelo para esta parte
 	modelo = glm::mat4(1);
-	modelo = glm::translate(modelo, traslado);// primero traslación
-	modelo = glm::rotate(modelo, rotacion, glm::vec3(0.0f, 1.0f, 0.0f)); // luego rotación
+	modelo = glm::translate(modelo, traslado);// primero traslaciï¿½n
+	modelo = glm::rotate(modelo, rotacion, glm::vec3(0.0f, 1.0f, 0.0f)); // luego rotaciï¿½n
 	modelo = glm::scale(modelo, escala); // finalmente escala
 	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(modelo));
 
@@ -184,7 +184,7 @@ void cuboDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint unif
 int main()
 {
 	// =================================================================================
-	// INICIALIZACIÓN DE GLFW, GLEW Y VENTANA
+	// INICIALIZACIï¿½N DE GLFW, GLEW Y VENTANA
 	// =================================================================================
 
 	glfwInit();
@@ -257,7 +257,7 @@ int main()
 
 
 	// =================================================================================
-	// 					CONFIGURACIÓN DE VÉRTICES PARA PRIMITIVAS
+	// 					CONFIGURACIï¿½N DE Vï¿½RTICES PARA PRIMITIVAS
 	// =================================================================================
 
 	GLuint VBO, VAO;
@@ -281,7 +281,7 @@ int main()
 	glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
 
 // =================================================================================
-	// 					CONFIGURACIÓN DE VÉRTICES PARA PRIMITIVAS (CUBO)
+	// 					CONFIGURACIï¿½N DE Vï¿½RTICES PARA PRIMITIVAS (CUBO)
 	// =================================================================================
 	GLuint VBO_Cubo, VAO_Cubo;
 	glGenVertexArrays(1, &VAO_Cubo);
@@ -293,18 +293,18 @@ int main()
 
 	glBindVertexArray(VAO_Cubo); // Enlazar el VAO
 
-	// Atributo de Posición (Location 0)
+	// Atributo de Posiciï¿½n (Location 0)
 	// El Stride (paso) ahora es de 8 floats
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(1);
 
 	// Atributo de Normal (Location 1)
-	// El Stride es 8, el Offset (desplazamiento) es después de los 3 floats de posición
+	// El Stride es 8, el Offset (desplazamiento) es despuï¿½s de los 3 floats de posiciï¿½n
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	// *** NUEVO: Atributo de Coordenadas de Textura (Location 2) ***
-	// El Stride es 8, el Offset es después de 3 (pos) + 3 (norm) = 6 floats
+	// El Stride es 8, el Offset es despuï¿½s de 3 (pos) + 3 (norm) = 6 floats
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(2);
 
@@ -326,7 +326,7 @@ int main()
 		DoMovement();
 
 		// Clear the colorbuffer
-		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);  // Aumentado de 0.1f para un fondo más claro
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);  // Aumentado de 0.1f para un fondo mï¿½s claro
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	   
 		// OpenGL options
@@ -353,7 +353,7 @@ int main()
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.diffuse"), 0.7f, 0.7f, 0.7f);    // Aumentado de 0.2f
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.specular"), 0.5f, 0.5f, 0.5f);   // Aumentado de 0.2f
 
-		// Luces Puntuales (pointLights) - Usando los colores de las lámparas
+		// Luces Puntuales (pointLights) - Usando los colores de las lï¿½mparas
 		// Point light 1
 	    glm::vec3 lightColor;
 		lightColor.x= abs(sin(glfwGetTime() *Light1.x));
@@ -367,8 +367,8 @@ int main()
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].diffuse")/*, lampColors[0].r, lampColors[0].g, lampColors[0].b*/);       // Difuso Rojo
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].specular")/*, lampColors[0].r, lampColors[0].g, lampColors[0].b*/);      // Especular Rojo
 		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].constant"), 1.0f);
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].linear"), 0.045f); // Atenuación específica
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"), 0.075f); // Atenuación específica
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].linear"), 0.045f); // Atenuaciï¿½n especï¿½fica
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"), 0.075f); // Atenuaciï¿½n especï¿½fica
 
 		//// Point light 1 (Verde)
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[1].position"), pointLightPositions[1].x, pointLightPositions[1].y, pointLightPositions[1].z);
@@ -376,8 +376,8 @@ int main()
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[1].diffuse"), lampColors[1].r, lampColors[1].g, lampColors[1].b);       // Difuso Verde
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[1].specular"), lampColors[1].r, lampColors[1].g, lampColors[1].b);      // Especular Verde
 		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[1].constant"), 1.0f);
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[1].linear"), 0.09f); // Atenuación ejemplo
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[1].quadratic"), 0.032f); // Atenuación ejemplo
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[1].linear"), 0.09f); // Atenuaciï¿½n ejemplo
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[1].quadratic"), 0.032f); // Atenuaciï¿½n ejemplo
 
 		//// Point light 2 (Azul)
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[2].position"), pointLightPositions[2].x, pointLightPositions[2].y, pointLightPositions[2].z);
@@ -385,8 +385,8 @@ int main()
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[2].diffuse"), lampColors[2].r, lampColors[2].g, lampColors[2].b);       // Difuso Azul
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[2].specular"), lampColors[2].r, lampColors[2].g, lampColors[2].b);      // Especular Azul
 		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[2].constant"), 1.0f);
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[2].linear"), 0.09f); // Atenuación ejemplo
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[2].quadratic"), 0.032f); // Atenuación ejemplo
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[2].linear"), 0.09f); // Atenuaciï¿½n ejemplo
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[2].quadratic"), 0.032f); // Atenuaciï¿½n ejemplo
 
 		//// Point light 3 (Blanco)
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[3].position"), pointLightPositions[3].x, pointLightPositions[3].y, pointLightPositions[3].z);
@@ -394,8 +394,8 @@ int main()
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[3].diffuse"), lampColors[3].r, lampColors[3].g, lampColors[3].b);       // Difuso Blanco
 		//glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[3].specular"), lampColors[3].r, lampColors[3].g, lampColors[3].b);      // Especular Blanco
 		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].constant"), 1.0f);
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].linear"), 0.09f); // Atenuación ejemplo
-		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].quadratic"), 0.032f); // Atenuación ejemplo
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].linear"), 0.09f); // Atenuaciï¿½n ejemplo
+		//glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].quadratic"), 0.032f); // Atenuaciï¿½n ejemplo
 
 
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
@@ -434,7 +434,7 @@ int main()
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].constant"), 1.0f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].linear"), 0.0f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].quadratic"), 0.0f);
-		// SpotLight  //una luz tipo linterna en la cámara
+		// SpotLight  //una luz tipo linterna en la cï¿½mara
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.ambient"), 0.8f, 0.8f, 0.8f);
@@ -497,17 +497,7 @@ int main()
 		////glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		//glBindVertexArray(0);
 
-		//modelo pinguino
-		glm::mat4 pinguino = glm::mat4(1.0f);
-		pinguino = glm::translate(pinguino, glm::vec3(36.0f, 0.15f, -20.5f));
-		pinguino = glm::rotate(pinguino, glm::radians(270.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		//glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(pinguino));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		Pinguino.Draw(lightingShader);
-		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
-		glBindVertexArray(0);
+
 
 		//modelo foca
 
@@ -589,7 +579,7 @@ int main()
 		//pataDraw(model, glm::vec3(0.2f, 4.0f, 48.0f), glm::vec3(200.0f, 0.41f, 0.0f), modelLoc, VAO_Cubo, armTextureID);//pared de enfrente
 		//pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(160.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de pinguino derecha
 		//pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(120.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de foca derecha
-		//pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(77.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de delfín derecha
+		//pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(77.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de delfï¿½n derecha
 		
 		// Maceta 
 		cuboDraw(model, glm::vec3(0.3f, 0.05f, 0.3f), glm::vec3(0.0f, 0.5f, 0.0f), modelLoc, VAO_Cubo, armTextureID, 0.0f);
@@ -601,7 +591,7 @@ int main()
 		// Tallo
 		cuboDraw(model, glm::vec3(0.02f, 0.4f, 0.02f), glm::vec3(0.0f, 1.0f, 0.0f), modelLoc, VAO_Cubo, armTextureID, 0.0f);
 
-		// Pétalos
+		// Pï¿½talos
 		const int numPetalos = 8;
 		const float radio = 0.15f;
 		for (int i = 0; i < numPetalos; i++) {
@@ -609,7 +599,7 @@ int main()
 			float x = radio * cos(angulo);
 			float z = radio * sin(angulo);
 
-			// Cada pétalo
+			// Cada pï¿½talo
 			cuboDraw(model,
 				glm::vec3(0.05f, 0.15f, 0.02f),
 				glm::vec3(x, 1.3f, z),  // Ajustado Y a 1.3f
@@ -642,17 +632,17 @@ int main()
 		cuboDraw(model, glm::vec3(0.05f, 0.5f, 0.05f),glm::vec3(1.0f, 1.15f, 2.0f),modelLoc, VAO_Cubo, greenTextureID, 0.0f);//flor color verde
 		cuboDraw(model, glm::vec3(0.1f, 0.1f, 0.1f),glm::vec3(1.0f, 1.45f, 2.0f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);//pistilos, amarillo
 
-		// --- 3. Pétalos ---
+		// --- 3. Pï¿½talos ---
 		cuboDraw(model, glm::vec3(0.2f, 0.2f, 0.05f),glm::vec3(1.0f, 1.45f, 2.075f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);
-		cuboDraw(model, glm::vec3(0.2f, 0.2f, 0.05f),glm::vec3(1.0f, 1.45f, 1.925f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);// Pétalo Trasero (-Z)
-		cuboDraw(model, glm::vec3(0.05f, 0.2f, 0.2f),glm::vec3(1.075f, 1.45f, 2.0f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);// Pétalo Derecho (+X)
-		cuboDraw(model, glm::vec3(0.05f, 0.2f, 0.2f),glm::vec3(0.925f, 1.45f, 2.0f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);// Pétalo Izquierdo (-X)
+		cuboDraw(model, glm::vec3(0.2f, 0.2f, 0.05f),glm::vec3(1.0f, 1.45f, 1.925f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);// Pï¿½talo Trasero (-Z)
+		cuboDraw(model, glm::vec3(0.05f, 0.2f, 0.2f),glm::vec3(1.075f, 1.45f, 2.0f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);// Pï¿½talo Derecho (+X)
+		cuboDraw(model, glm::vec3(0.05f, 0.2f, 0.2f),glm::vec3(0.925f, 1.45f, 2.0f),modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);// Pï¿½talo Izquierdo (-X)
 
 
 		//--------------------------------------------------
-		lightingShader.Use(); // shader de iluminación 
+		lightingShader.Use(); // shader de iluminaciï¿½n 
 		// -------------------------------------------------------------------------------- -
-	// 							DIBUJO DE MODELO JERÁRQUICO (BRAZO)
+	// 							DIBUJO DE MODELO JERï¿½RQUICO (BRAZO)
 	// ---------------------------------------------------------------------------------
 		// Textura
 		// (Asumimos que la textura difusa va en la unidad 0)
@@ -663,8 +653,8 @@ int main()
 
 		glBindVertexArray(VAO_Cubo); // Usa el VAO del cubo
 
-		// Habilitar los atributos (Ubicación 0 y 1 ya están habilitadas por defecto)
-		glEnableVertexAttribArray(0); // Posición
+		// Habilitar los atributos (Ubicaciï¿½n 0 y 1 ya estï¿½n habilitadas por defecto)
+		glEnableVertexAttribArray(0); // Posiciï¿½n
 		glEnableVertexAttribArray(1); // Normal
 		glEnableVertexAttribArray(2); //Habilitar Coordenadas de Textura
 
