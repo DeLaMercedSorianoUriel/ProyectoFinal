@@ -300,7 +300,7 @@ int main()
 	Model FocaIzq((char*)"Models/foca/FocaIzq.obj");
 	Model iglu((char*)"Models/iglu/iglu3d.obj");
 	Model huevo((char*)"Models/huevo/huevo.obj");
-
+	Model pino((char*)"Models/pino/nievepino.obj");
 
 	// Carga textura
 	GLuint armTextureID = TextureFromFile("images/madera.jpg", ".");
@@ -344,7 +344,7 @@ int main()
 	ConfigurarTexturaRepetible(pisoEntradaID);
 
 	// *** TEXTURA PARA EL PISO ACUARIO ***
-	GLuint pisoAcuarioTextureID = TextureFromFile("images/sand.jpg", ".");
+	GLuint pisoAcuarioTextureID = TextureFromFile("images/textnieve.jpg", ".");
 	ConfigurarTexturaRepetible(pisoAcuarioTextureID);
 
 	// *** TEXTURA PARA EL PISO SELVA ***
@@ -659,13 +659,25 @@ int main()
 		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		glBindVertexArray(0);
 
+		//modelo pino
+		glm::mat4 nievePino = glm::mat4(1.0f);
+		nievePino = glm::translate(nievePino, glm::vec3(2.9f, 1.15f, -3.1f));
+		nievePino = glm::rotate(nievePino, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		nievePino = glm::scale(nievePino, glm::vec3(3.2f, 3.2f, 3.2f));
+		//glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(nievePino));
+		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		pino.Draw(lightingShader);
+		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
+		glBindVertexArray(0);
+
 
 
 
 		// **** DIBUJO DE ANIMALES ACUARIO ****
 
 		// --- FOCA ANIMADA ---
-		// --- FOCA ANIMADA (LÓGICA INVERTIDA) ---
 		if (animarFoca)
 		{
 			// Obtener el tiempo transcurrido
