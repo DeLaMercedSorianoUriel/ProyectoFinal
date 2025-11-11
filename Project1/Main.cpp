@@ -35,6 +35,7 @@ void DoMovement();
 // 	CONFIGURACIÓN INICIAL Y VARIABLES GLOBALES
 // =================================================================================
 //Configurar funciones para repetir textura de piso
+void ConfigurarVAO(GLuint& VAO, GLuint& VBO, float* vertices, size_t size);
 void ConfigurarTexturaRepetible(GLuint textureID);
 void DibujarPiso(GLuint textureID, glm::vec3 posicion, glm::vec3 escala, GLuint VAO_Cubo, GLint modelLoc);
 
@@ -71,6 +72,56 @@ glm::vec3 pointLightPositions[] = {
 // 						ANIMACIÓN Y POSICIONES BASE DE ANIMALES
 // =================================================================================
 
+// -----------------------------------------
+//  SELVA (X,Z)
+// -----------------------------------------
+
+// -----------------------------------------
+//  SABANA (-X,-Z)
+// ---------------------------------------
+
+
+// -----------------------------------------
+//  DESIERTO (-X,Z)
+// -----------------------------------------
+//  CAMELLO (Cuadrante -X, Z)
+float rotCamel = 180.0f;
+float camelLegFL = 0.0f;
+float camelLegFR = 0.0f;
+float camelLegBL = 0.0f;
+float camelLegBR = 0.0f;
+float camelHead = 0.0f;
+float camelTail = 0.0f;
+float camelScale = 0.65f;
+glm::vec3 camelPos = glm::vec3(-6.0f, -0.5f, 10.0f);
+bool animarCamello = false;
+float startTimeCamello = 0.0f;
+bool teclaC_presionada = false;
+
+
+//  TORTUGA (Cuadrante -X, Z)
+float rotTortuga = 0.0f;
+float tortugaLegFL = 0.0f;
+float tortugaLegFR = 0.0f;
+float tortugaScale = 0.20f;
+glm::vec3 tortugaPos = glm::vec3(-7.8f, -0.18f, 9.5f);
+bool animarTortuga = false;
+float startTimeTortuga = 0.0f;
+bool teclaX_presionada = false;
+
+//  CÓNDOR (Cuadrante -X, Z)
+float rotCondor = 90.0f;
+float condorHead = 0.0f;
+float condorAlaIzq = 0.0f;
+float condorAlaDer = 0.0f;
+float condorScale = 0.70f;
+glm::vec3 condorPos = glm::vec3(-6.7f, 0.5f, 6.0f);
+bool animarCondor = false;
+bool teclaZ_presionada = false;
+
+// -----------------------------------------
+//  ACUARIO (X,-Z)
+// -----------------------------------------
 
 //		Pinguino (Cuadrante X, -Z)
 float PinAlaIzq = 0.0f;
@@ -80,7 +131,7 @@ glm::vec3 PinguinoPos = glm::vec3(10.0f, -0.1f, -4.0f);
 
 bool animarPinguino = false;
 float startTimePinguino = 0.0f;
-bool teclaC_presionada = false;
+bool teclaV_presionada = false;
 
 //		Foca (Cuadrante X, -Z)
 float rotFocaMedio = 0.0f;
@@ -106,7 +157,7 @@ float DelfinScale = 0.8f; // Escala del delfín
 
 bool animarDelfin = false;
 float startTimeDelfin = 0.0f;
-bool teclaD_presionada = false; // Usaremos 'X' para activarlo
+bool teclaN_presionada = false; // Usaremos 'X' para activarlo
 
 
 // Vértices del cubo CON COORDENADAS DE TEXTURA
@@ -154,6 +205,57 @@ float vertices[] = {
 	  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  10.0f, 0.0f,
 	 -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
 	 -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 10.0f
+};
+
+// Vértices para PAREDES 
+float verticesPared[] = {
+	// Cara Trasera (-Z) - CORREGIDO: más repeticiones horizontales
+	-0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
+	 0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   15.0f, 0.0f,  // Aumentado de 3.0 a 10.0
+	 0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   15.0f, 5.0f,  // Aumentado de 3.0 a 10.0
+	 0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   15.0f, 5.0f,
+	-0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   0.0f, 5.0f,
+	-0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
+
+	// Cara Frontal (+Z)
+	-0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,   15.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,   15.0f, 5.0f,
+	 0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,   15.0f, 5.0f,
+	-0.5f,  0.5f,  0.5f,   0.0f,  0.0f,  1.0f,   0.0f, 5.0f,
+	-0.5f, -0.5f,  0.5f,   0.0f,  0.0f,  1.0f,   0.0f, 0.0f,
+
+	// Cara Izquierda (-X)
+	-0.5f,  0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,   5.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   5.0f, 15.0f,
+	-0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 15.0f,
+	-0.5f, -0.5f, -0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 15.0f,
+	-0.5f, -0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  -1.0f,  0.0f,  0.0f,   5.0f, 0.0f,
+
+	// Cara Derecha (+X)
+	 0.5f,  0.5f,  0.5f,   1.0f,  0.0f,  0.0f,   5.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,   1.0f,  0.0f,  0.0f,   5.0f, 15.0f,
+	 0.5f, -0.5f, -0.5f,   1.0f,  0.0f,  0.0f,   0.0f, 15.0f,
+	 0.5f, -0.5f, -0.5f,   1.0f,  0.0f,  0.0f,   0.0f, 15.0f,
+	 0.5f, -0.5f,  0.5f,   1.0f,  0.0f,  0.0f,   0.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,   1.0f,  0.0f,  0.0f,   5.0f, 0.0f,
+
+	 // Cara Inferior (-Y)
+	 -0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,   0.0f, 5.0f,
+	  0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,   5.0f, 5.0f,
+	  0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,   5.0f, 0.0f,
+	  0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,   5.0f, 0.0f,
+	 -0.5f, -0.5f,  0.5f,   0.0f, -1.0f,  0.0f,   0.0f, 0.0f,
+	 -0.5f, -0.5f, -0.5f,   0.0f, -1.0f,  0.0f,   0.0f, 5.0f,
+
+	 // Cara Superior (+Y)
+	 -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,   0.0f, 5.0f,
+	  0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,   5.0f, 5.0f,
+	  0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,   5.0f, 0.0f,
+	  0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,   5.0f, 0.0f,
+	 -0.5f,  0.5f,  0.5f,   0.0f,  1.0f,  0.0f,   0.0f, 0.0f,
+	 -0.5f,  0.5f, -0.5f,   0.0f,  1.0f,  0.0f,   0.0f, 5.0f
 };
 
 //glm::vec3 lampColors[] = {
@@ -320,7 +422,54 @@ int main()
 	// 						CARGA DE MODELOS - DESIERTO (-X,Z)
 	// =================================================================================
 
+	std::cout << "Cargando modelos..." << std::endl;
 
+	//  ************ Codigo comentado para no cargar todo desde el inicio se descomenta al final *******
+
+
+	// ====== ESCENARIO ======
+	Model Oasis((char*)"Models/oasis/oasis.obj");
+	glm::vec3 oasisPos(-9.5f, -0.64f, 9.5f);
+	glm::vec3 oasisScale(20.0f, 20.0f, 20.0f);
+	float oasisRot = 270.0f;
+
+	Model Huesos((char*)"Models/huesos/huesos.obj");
+	glm::vec3 huesosPos(-8.5f, -0.6f, 4.0f);
+	glm::vec3 huesosScale(0.3f, 0.25f, 0.25f);
+	float huesosRot = 90.0f;
+
+	Model Tronco((char*)"Models/tronco/tronco.obj");
+	glm::vec3 troncoPos(-6.8f, -0.5f, 6.0f);
+	glm::vec3 troncoScale(0.7f, 0.7f, 0.7f);
+	float troncoRot = 0.0f;
+
+
+	Model Cactus((char*)"Models/cactus/Cactus.obj");
+	glm::vec3 cactusPos(-6.0f, -0.5f, 3.7f);
+	glm::vec3 cactusScale(0.04f, 0.04f, 0.04f);
+	float cactusRot = 0.0f;
+
+		// ====== CAMELLO ======
+	Model CamelBody((char*)"Models/camello/CamelBody.obj");
+	Model CamelHead((char*)"Models/camello/CamelCabeza.obj");
+	Model CamelLeg_FL((char*)"Models/camello/CamelPataizqEnfr.obj");
+	Model CamelLeg_FR((char*)"Models/camello/CamelPataEnfreDer.obj");
+	Model CamelLeg_BL((char*)"Models/camello/CamelPataizqAtras.obj");
+	Model CamelLeg_BR((char*)"Models/camello/CamelPataAtrasDer.obj");
+
+	// ====== TORTUGA ======
+	Model TortugaBody((char*)"Models/tortuga/tortuga_cuerpo.obj");
+	Model TortugaLeg_FL((char*)"Models/tortuga/tortuga_pata_izq.obj");
+	Model TortugaLeg_FR((char*)"Models/tortuga/tortuga_pata_der.obj");
+
+
+	// ====== CÓNDOR ======
+	Model CondorBody((char*)"Models/condor/condor_cuerpo.obj");
+	Model CondorHead((char*)"Models/condor/condor_cabeza.obj");
+	Model CondorAla_Der((char*)"Models/condor/condor_ala_der.obj");
+	Model CondorAla_Izq((char*)"Models/condor/condor_ala_izq.obj");
+
+	std::cout << "Modelos cargados!" << std::endl;
 
 	// =================================================================================
 	// 						CARGA DE MODELOS - Sabana (-X,-Z)
@@ -333,15 +482,17 @@ int main()
 	// =================================================================================
 
 
-	// PARA ESTA PARTE YA HAY UNA FUNCION LA CUAL ES ConfigurarTexturaRepetible para que la usen
-	// y no tengan que poner todo el codigo repetido ConfigurarTexturaRepetible(variablePiso);
-
 	// ***TEXTURA GENERAL PARA EL PISO ***
 	GLuint pisoTextureID = TextureFromFile("images/ladrillo.png", ".");
 	ConfigurarTexturaRepetible(pisoTextureID);
 
+	// *** TEXTURA PARA EL PISO ENTRADA ***
 	GLuint pisoEntradaID = TextureFromFile("images/pasto.jpg", ".");
 	ConfigurarTexturaRepetible(pisoEntradaID);
+
+	// *** TEXTURA PARA LAS PAREDES ***
+	GLuint paredTextureID = TextureFromFile("images/muro.jpg", ".");
+	ConfigurarTexturaRepetible(paredTextureID);
 
 	// *** TEXTURA PARA EL PISO ACUARIO ***
 	GLuint pisoAcuarioTextureID = TextureFromFile("images/textnieve.jpg", ".");
@@ -359,86 +510,34 @@ int main()
 	GLuint pisoArenaTextureID = TextureFromFile("images/sand.jpg", ".");
 	ConfigurarTexturaRepetible(pisoArenaTextureID);
 
-
-	// =================================================================================
-	// 					CONFIGURACIÓN DE VÉRTICES PARA PRIMITIVAS
-	// =================================================================================
-
-	GLuint VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	// Position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-	// normal attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// Set texture units
-	lightingShader.Use();
-	glUniform1i(glGetUniformLocation(lightingShader.Program, "Material.difuse"), 0);
-	glUniform1i(glGetUniformLocation(lightingShader.Program, "Material.specular"), 1);
+	// Altura de la pared
+	float alturaPared = 3.0f;
+	// Escala general del área
+	float tamanoBase = 25.0f;
 
 	glm::mat4 projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 100.0f);
+
+
 
 	// =================================================================================
 		// 					CONFIGURACIÓN DE VÉRTICES PARA PRIMITIVAS (CUBO)
 		// =================================================================================
 	GLuint VBO_Cubo, VAO_Cubo;
-	glGenVertexArrays(1, &VAO_Cubo);
-	glGenBuffers(1, &VBO_Cubo);
-	glBindVertexArray(VAO_Cubo);
+	ConfigurarVAO(VAO_Cubo, VBO_Cubo, vertices, sizeof(vertices));
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_Cubo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glBindVertexArray(VAO_Cubo); // Enlazar el VAO
-
-	// Atributo de Posición (Location 0)
-	// El Stride (paso) ahora es de 8 floats
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-
-	// Atributo de Normal (Location 1)
-	// El Stride es 8, el Offset (desplazamiento) es después de los 3 floats de posición
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// *** NUEVO: Atributo de Coordenadas de Textura (Location 2) ***
-	// El Stride es 8, el Offset es después de 3 (pos) + 3 (norm) = 6 floats
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	glBindVertexArray(0); // Desvincular el VAO
+	// =================================================================================
+	// 		CONFIGURACIÓN DE VÉRTICES PARA PAREDES
+	// =================================================================================
+	GLuint VBO_Pared, VAO_Pared;
+	ConfigurarVAO(VAO_Pared, VBO_Pared, verticesPared, sizeof(verticesPared));
 
 
 	// =================================================================================
 	// 		CONFIGURACIÓN DE VÉRTICES PARA PISO DE ENTRADA
 	// =================================================================================
 	GLuint VBO_Entrada, VAO_Entrada;
-	glGenVertexArrays(1, &VAO_Entrada);
-	glGenBuffers(1, &VBO_Entrada);
-	glBindVertexArray(VAO_Entrada);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_Entrada);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	// Atributo de Posición (Location 0)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// Atributo de Normal (Location 1)
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// Atributo de Coordenadas de Textura (Location 2)
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	glBindVertexArray(0); // Desvincular el VAO
+	ConfigurarVAO(VAO_Entrada, VBO_Entrada, vertices, sizeof(vertices));
 
 
 	// =================================================================================
@@ -485,7 +584,6 @@ int main()
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.diffuse"), 0.6f, 0.6f, 0.6f);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "dirLight.specular"), 0.6f, 0.6f, 0.6f);
 
-		// Luces Puntuales (pointLights) - Usando los colores de las lámparas
 		// Point light 1
 		glm::vec3 lightColor;
 		lightColor.x = abs(sin(glfwGetTime() * Light1.x));
@@ -566,6 +664,7 @@ int main()
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].constant"), 1.0f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].linear"), 0.0f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[3].quadratic"), 0.0f);
+
 		// SpotLight  //una luz tipo linterna en la cámara
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.direction"), camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
@@ -579,7 +678,7 @@ int main()
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(10.0f)));
 
 		// Set material properties
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 2.0f);
+		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 32.0f);
 
 		// Create camera transformations
 		glm::mat4 view;
@@ -611,10 +710,24 @@ int main()
 		// DIBUJO DEL PASTO ENTRADA
 		DibujarPiso(pisoEntradaID, glm::vec3(0.0f, -0.5f, 17.5f), glm::vec3(25.0f, 0.1f, 10.0f), VAO_Cubo, modelLoc);
 
+		//Dibujo de las paredes 
 
+		// Pared trasera (Z negativa)
+		DibujarPiso(paredTextureID, glm::vec3(0.0f, alturaPared / 2 - 0.5f, -tamanoBase / 2),
+			glm::vec3(tamanoBase, alturaPared, 0.2f), VAO_Pared, modelLoc);
+
+
+
+		// Pared izquierda (X negativa)
+		DibujarPiso(paredTextureID, glm::vec3(-tamanoBase / 2, alturaPared / 2 - 0.5f, 0.0f),
+			glm::vec3(0.2f, alturaPared, tamanoBase), VAO_Pared, modelLoc);
+
+		// Pared derecha (X positiva)
+		DibujarPiso(paredTextureID, glm::vec3(tamanoBase / 2, alturaPared / 2 - 0.5f, 0.0f),
+			glm::vec3(0.2f, alturaPared, tamanoBase), VAO_Pared, modelLoc);
 
 	// ---------------------------------------------------------------------------------
-	// 							DIBUJO DE ESCENARIO ACUARIO
+	// 							DIBUJO DE ESCENARIO ACUARIO  (x,-z)
 	// ---------------------------------------------------------------------------------
 
 		// **** DIBUJOS DEL PISO Y ACCESORIOS DE ACUARIO ****
@@ -984,7 +1097,256 @@ int main()
 
 		DibujarPiso(pisoArenaTextureID, glm::vec3(-7.25f, -0.49f, 7.25f), glm::vec3(10.5f, 0.1f, 10.5f), VAO_Cubo, modelLoc);
 
+		// --- OASIS ---
+		model = glm::mat4(1);
+		model = glm::translate(model, oasisPos);
+		model = glm::scale(model, oasisScale);
+		model = glm::rotate(model, glm::radians(oasisRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		Oasis.Draw(lightingShader);
+
+		// --- HUESOS ---
+		model = glm::mat4(1);
+		model = glm::translate(model, huesosPos);
+		model = glm::scale(model, huesosScale);
+		model = glm::rotate(model, glm::radians(huesosRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		Huesos.Draw(lightingShader);
+
+		// --- TRONCO ---
+		model = glm::mat4(1);
+		model = glm::translate(model, troncoPos);
+		model = glm::scale(model, troncoScale);
+		model = glm::rotate(model, glm::radians(troncoRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		Tronco.Draw(lightingShader);
+
+		// --- CACTUS ---
+		model = glm::mat4(1);
+		model = glm::translate(model, cactusPos);
+		model = glm::scale(model, cactusScale);
+		model = glm::rotate(model, glm::radians(cactusRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		Cactus.Draw(lightingShader);
+
 		// **** DIBUJO DE ANIMALES DESIERTO ****
+
+		//CAMELLO
+
+
+		if (animarCamello)
+		{
+			float t = glfwGetTime() - startTimeCamello;
+
+			// CAMINANDO HACIA EL CACTUS
+			if (t < 8.0f)
+			{
+				// Movimiento de avance 
+				float totalDist = 10.0f - 5.0f; // distancia = 5 unidades
+				camelPos.z = 10.0f - (t * (totalDist / 8.0f)); // avanza desde Z=10 hasta Z=5
+
+				// Movimiento de patas (alternadas)
+				float paso = sin(t * 2.0f); // frecuencia lenta
+				camelLegFL = paso * 15.0f;  // pata frontal izq
+				camelLegBR = paso * 15.0f;  // pata trasera der
+				camelLegFR = -paso * 15.0f; // pata frontal der (opuesta)
+				camelLegBL = -paso * 15.0f; // pata trasera izq (opuesta)
+
+				// Cabeza 
+				camelHead = sin(t * 0.5f) * 1.3f; // leve movimiento
+				rotCamel = 180.0f;
+			}
+
+			// FASE 2: LLEGA AL CACTUS
+			else if (t < 14.0f)
+			{
+				float t2 = t - 8.0f;
+				camelPos.z = 5.0f; // está en el cactus 
+
+				// Detiene patas lentamente
+				camelLegFL = sin(t2 * 1.0f) * 5.0f;
+				camelLegFR = -camelLegFL;
+				camelLegBL = -camelLegFR;
+				camelLegBR = camelLegFR;
+
+				// Movimiento de cabeza simulando comer
+				camelHead = abs(sin(t2 * 1.5f)) * 2.9f; // baja y sube lento
+				rotCamel = 180.0f;
+			}
+
+			
+			else
+			{
+				camelPos.z = 5.0f;
+				camelHead = 0.0f;
+				camelLegFL = camelLegFR = camelLegBL = camelLegBR = 0.0f;
+				rotCamel = 180.0f;
+			}
+		}
+
+
+		model = glm::mat4(1);
+		model = glm::translate(model, camelPos);
+		model = glm::rotate(model, glm::radians(rotCamel), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(camelScale));
+		modelTemp = model;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CamelBody.Draw(lightingShader);
+
+		// Cabeza
+		model = modelTemp;
+		model = glm::rotate(model, glm::radians(camelHead), glm::vec3(1.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CamelHead.Draw(lightingShader);
+
+		// Pierna delantera izquierda
+		glm::vec3 camelPivotFL(0.3f, 1.2f, 0.5f);
+		model = modelTemp;
+		model = glm::translate(model, camelPivotFL);
+		model = glm::rotate(model, glm::radians(camelLegFL), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, -camelPivotFL);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CamelLeg_FL.Draw(lightingShader);
+
+		// Pierna delantera derecha
+		glm::vec3 camelPivotFR(-0.3f, 1.2f, 0.5f);
+		model = modelTemp;
+		model = glm::translate(model, camelPivotFR);
+		model = glm::rotate(model, glm::radians(camelLegFR), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, -camelPivotFR);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CamelLeg_FR.Draw(lightingShader);
+
+		// Pierna trasera izquierda
+		glm::vec3 camelPivotBL(0.3f, 1.2f, -0.5f);
+		model = modelTemp;
+		model = glm::translate(model, camelPivotBL);
+		model = glm::rotate(model, glm::radians(camelLegBL), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, -camelPivotBL);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CamelLeg_BL.Draw(lightingShader);
+
+		// Pierna trasera derecha
+		glm::vec3 camelPivotBR(-0.3f, 1.2f, -0.5f);
+		model = modelTemp;
+		model = glm::translate(model, camelPivotBR);
+		model = glm::rotate(model, glm::radians(camelLegBR), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, -camelPivotBR);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CamelLeg_BR.Draw(lightingShader);
+
+
+
+		//CONDOR
+
+		if (animarCondor)
+		{
+			float t = glfwGetTime();
+			condorAlaIzq = sin(t * 10.0f) * 1.5f;
+			condorAlaDer = -condorAlaIzq;
+			condorHead = sin(t * 8.0f) * 1.0f;
+			condorPos.y = 0.7f + sin(t * 0.8f) * 0.15f;
+		}
+
+
+		model = glm::mat4(1);
+		model = glm::translate(model, condorPos);
+		model = glm::rotate(model, glm::radians(rotCondor), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(condorScale));
+		modelTemp = model;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CondorBody.Draw(lightingShader);
+
+		// Cabeza
+		model = modelTemp;
+		model = glm::rotate(model, glm::radians(condorHead), glm::vec3(1.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CondorHead.Draw(lightingShader);
+
+		// Ala izquierda
+		glm::vec3 condorPivotAlaIzq(0.5f, 0.5f, 0.0f);
+		model = modelTemp;
+		model = glm::translate(model, condorPivotAlaIzq);
+		model = glm::rotate(model, glm::radians(condorAlaIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::translate(model, -condorPivotAlaIzq);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CondorAla_Izq.Draw(lightingShader);
+
+		// Ala derecha
+		glm::vec3 condorPivotAlaDer(-0.5f, 0.5f, 0.0f);
+		model = modelTemp;
+		model = glm::translate(model, condorPivotAlaDer);
+		model = glm::rotate(model, glm::radians(condorAlaDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::translate(model, -condorPivotAlaDer);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		CondorAla_Der.Draw(lightingShader);
+
+		//TORTUGA
+		if (animarTortuga)
+		{
+			float t = glfwGetTime() - startTimeTortuga; // tiempo de animación
+
+			//FASE 1: Camina hacia el agua
+			if (t < 2.5f)
+			{
+				tortugaPos.x = -7.8f - (t * 0.08f);
+				tortugaPos.y = -0.18f;
+				rotTortuga = 0.0f;
+				tortugaScale = 0.20f;
+			}
+			//FASE 2: Empieza a sumergirse
+			else if (t < 6.0f)
+			{
+				float t2 = t - 2.5f;
+				tortugaPos.x = -8.0f - (t2 * 0.4f);    // avanza en el agua 
+				tortugaPos.y = -0.18f - (t2 * 0.07f);  // baja más suave
+				tortugaScale = 0.20f - (t2 * 0.012f);  // se achica 
+				rotTortuga = sin(t2 * 0.5f) * 5.0f;
+			}
+			//FASE 3: Sale del agua
+			else if (t < 9.0f)
+			{
+				float t3 = t - 6.0f;
+				tortugaPos.x = -9.4f - (t3 * 0.7f);              // sale del agua
+				tortugaPos.y = -0.425f + (t3 * 0.0483f);
+				tortugaScale = 0.19f + (t3 * 0.0033f);
+				rotTortuga = t3 * 60.0f;                         // empieza a girar 
+			}
+			//FASE FINAL: gira
+			else
+			{
+				tortugaPos.x = -11.5f;
+				tortugaPos.y = -0.28f;
+				tortugaScale = 0.20f;
+				rotTortuga = 180.0f;
+			}
+		}
+
+		model = glm::mat4(1);
+		model = glm::translate(model, tortugaPos);
+		model = glm::rotate(model, glm::radians(rotTortuga), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(tortugaScale));
+		modelTemp = model;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		TortugaBody.Draw(lightingShader);
+
+		// Pata delantera izquierda
+		glm::vec3 tortugaPivotFL(0.2f, 0.3f, 0.3f);
+		model = modelTemp;
+		model = glm::translate(model, tortugaPivotFL);
+		model = glm::rotate(model, glm::radians(tortugaLegFL), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, -tortugaPivotFL);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		TortugaLeg_FL.Draw(lightingShader);
+
+		// Pata delantera derecha
+		glm::vec3 tortugaPivotFR(-0.2f, 0.3f, 0.3f);
+		model = modelTemp;
+		model = glm::translate(model, tortugaPivotFR);
+		model = glm::rotate(model, glm::radians(tortugaLegFR), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::translate(model, -tortugaPivotFR);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		TortugaLeg_FR.Draw(lightingShader);
 
 
 		/*lightingShader.Use();
@@ -1006,62 +1368,7 @@ int main()
 
 
 		lightingShader.Use(); // shader de iluminación 
-		// -------------------------------------------------------------------------------- -
-	// 							DIBUJO DE MODELO JERÁRQUICO (BRAZO)
-	// ---------------------------------------------------------------------------------
-		//// Textura
-		//// (Asumimos que la textura difusa va en la unidad 0)
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, armTextureID);
-		//glActiveTexture(GL_TEXTURE1);
-		//glBindTexture(GL_TEXTURE_2D, armTextureID);
-
-		//glBindVertexArray(VAO_Cubo); // Usa el VAO del cubo
-
-		//// Habilitar los atributos (Ubicación 0 y 1 ya están habilitadas por defecto)
-		//glEnableVertexAttribArray(0); // Posición
-		//glEnableVertexAttribArray(1); // Normal
-		//glEnableVertexAttribArray(2); //Habilitar Coordenadas de Textura
-
-		//// Hombro
-		//glm::mat4 model_brazo = glm::mat4(1.0f);
-		//glm::mat4 modelTemp = glm::mat4(1.0f);
-		//// ... (Transformaciones hombro) ...
-		//model_brazo = glm::translate(model_brazo, glm::vec3(2.0f, 1.0f, 0.0f));
-		//model_brazo = glm::rotate(model_brazo, glm::radians(hombro_rot), glm::vec3(0.0f, 0.0f, 1.0f));
-		//modelTemp = model_brazo = glm::translate(model_brazo, glm::vec3(1.0f, 0.0f, 0.0f));
-		//model_brazo = glm::scale(model_brazo, glm::vec3(2.0f, 0.4f, 0.4f));
-		//glUniformMatrix4fv(glGetUniformLocation(lightingShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model_brazo));
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-
-		//// Antebrazo
-		//// ... (Transformaciones antebrazo) ...
-		//model_brazo = glm::translate(modelTemp, glm::vec3(1.0f, 0.0f, 0.0f));
-		//model_brazo = glm::rotate(model_brazo, glm::radians(codo_rot), glm::vec3(0.0f, 0.0f, 1.0f));
-		//model_brazo = glm::translate(model_brazo, glm::vec3(0.75f, 0.0f, 0.0f));
-		//model_brazo = glm::scale(model_brazo, glm::vec3(1.5f, 0.4f, 0.4f));
-		//glUniformMatrix4fv(glGetUniformLocation(lightingShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model_brazo));
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-
-		//glBindVertexArray(0); // Desvincular VAO_Cubo
-
-
-
-
-		//// Also draw the lamp object, again binding the appropriate shader
-		//lampShader.Use();
-		//// Get location objects for the matrices on the lamp shader (these could be different on a different shader)
-		//modelLoc = glGetUniformLocation(lampShader.Program, "model");
-		//viewLoc = glGetUniformLocation(lampShader.Program, "view");
-		//projLoc = glGetUniformLocation(lampShader.Program, "projection");
-
-		//// Set matrices
-		//glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		//glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		//glm::mat4 model = glm::mat4(1);
-		//model = glm::translate(model, lightPos);
-		//model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		
 
 
 		// Swap the screen buffers
@@ -1077,7 +1384,29 @@ int main()
 	return 0;
 }
 
+void ConfigurarVAO(GLuint& VAO, GLuint& VBO, float* vertices, size_t size)
+{
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
 
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+
+	// Atributo de Posición (Location 0)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Atributo de Normal (Location 1)
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// Atributo de Coordenadas de Textura (Location 2)
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(0);
+}
 
 // --- Función para configurar los parametros del piso de textura repetible ---
 void ConfigurarTexturaRepetible(GLuint textureID)
@@ -1210,50 +1539,98 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 	{
 		// ... (Código de la luz) ...
 	}
-
+	//---------------------------------------------------------------
+	//                      ANIMACIONES DE ANIMALES 
+	// ---------------------------------------------------------------
+	// 
+	// 
+	// 
+	// ---------------------------------------------------------------
+	//                                --ACUARIO--
+	// ---------------------------------------------------------------
 	// Activa la animación del pinguino con la tecla 'C'
-	if (key == GLFW_KEY_C && action == GLFW_PRESS && !teclaC_presionada)
+	if (key == GLFW_KEY_V && action == GLFW_PRESS && !teclaV_presionada)
 	{
-		animarPinguino = true;
+		animarPinguino = !animarPinguino;
 		startTimePinguino = glfwGetTime(); // Guarda el tiempo de inicio
-		teclaC_presionada = true; // Evita que se reinicie si se deja presionada
+		teclaV_presionada = true; // Evita que se reinicie si se deja presionada
 	}
-	// Opcional: Detener animación con 'V'
-	if (key == GLFW_KEY_V && action == GLFW_PRESS)
+	else
 	{
-		animarPinguino = false;
-		teclaC_presionada = false; // Permite volver a iniciar
-		PinAlaIzq = 0.0f; // Resetea posición
-		PinAlaDer = 0.0f; // Resetea posición
+		teclaV_presionada = false; // Permite volver a iniciar
 	}
 
 
 	if (key == GLFW_KEY_B && action == GLFW_PRESS && !teclaB_presionada)
 	{
-		animarFoca = true;
+		animarFoca = !animarFoca;
 		startTimeFoca = glfwGetTime(); // Guarda el tiempo de inicio
 		teclaB_presionada = true; // Evita que se reinicie si se deja presionada
 	}
-	if (key == GLFW_KEY_N && action == GLFW_PRESS)
+	else
 	{
-		animarFoca = false;
-		teclaB_presionada = false; // Permite volver a iniciar
+		teclaB_presionada = false;
 	}
 
 	// Activa la animación del Delfin con la tecla 'X'
-	if (key == GLFW_KEY_X && action == GLFW_PRESS && !teclaD_presionada)
+	if (key == GLFW_KEY_N && action == GLFW_PRESS && !teclaN_presionada)
 	{
-		animarDelfin = true;
+		animarDelfin = !animarDelfin;
 		startTimeDelfin = glfwGetTime(); // Guarda el tiempo de inicio
-		teclaD_presionada = true; // Evita que se reinicie si se deja presionada
+		teclaN_presionada = true; // Evita que se reinicie si se deja presionada
 	}
-	// Opcional: Detener animación con 'Z'
-	if (key == GLFW_KEY_Z && action == GLFW_PRESS)
+	
+	else
 	{
-		animarDelfin = false;
-		teclaD_presionada = false; // Permite volver a iniciar
+		teclaN_presionada = false; // Permite volver a iniciar
 	}
 
+	// ---------------------------------------------------------------
+	//                                --Animación desierto--
+	// ---------------------------------------------------------------
+	//CAMELLO
+	if (keys[GLFW_KEY_C])
+	{
+		if (!teclaC_presionada)
+		{
+			animarCamello = !animarCamello;
+			startTimeCamello = glfwGetTime();
+			teclaC_presionada = true;
+		}
+	}
+	else
+	{
+		teclaC_presionada = false;
+	}
+
+	//CONDOR
+	if (keys[GLFW_KEY_Z])
+	{
+		if (!teclaZ_presionada)
+		{
+			animarCondor = !animarCondor;
+			teclaZ_presionada = true;
+		}
+	}
+	else
+	{
+		teclaZ_presionada = false;
+	}
+
+	//TORTUGA
+	if (keys[GLFW_KEY_X])
+	{
+		if (!teclaX_presionada) // solo la primera vez que se presiona
+		{
+			animarTortuga = !animarTortuga;
+			startTimeTortuga = glfwGetTime();     // reinicia animación
+			teclaX_presionada = true;             // evita repeticiones
+		}
+	}
+	else
+	{
+		teclaX_presionada = false; // se suelta la tecla
+	}
 
 }
 

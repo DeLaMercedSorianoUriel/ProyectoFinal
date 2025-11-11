@@ -13,19 +13,22 @@ Este documento proporciona una guía completa de la estructura y organización d
 3. [Configuración Inicial y Variables Globales](#3-configuración-inicial-y-variables-globales)
 4. [Animaciones y Posiciones Base de Animales](#4-animaciones-y-posiciones-base-de-animales)
 5. [Vértices del Cubo](#5-vértices-del-cubo)
-6. [Función pataDraw()](#6-función-patadraw)
-7. [Función cuboDraw()](#7-función-cubodraw)
-8. [Función main() - Inicio](#8-función-main---inicio)
-9. [Inicialización de GLFW, GLEW y Ventana](#9-inicialización-de-glfw-glew-y-ventana)
-10. [Carga de Modelos y Texturas](#10-carga-de-modelos-y-texturas)
-11. [Configuración de Vértices para Primitivas](#11-configuración-de-vértices-para-primitivas)
-12. [Ciclo de Renderizado (Game Loop)](#12-ciclo-de-renderizado-game-loop)
-13. [Iluminación](#13-iluminación)
-14. [Dibujo de Escenarios](#14-dibujo-de-escenarios)
-15. [Funciones Auxiliares](#15-funciones-auxiliares)
-16. [Callbacks de Entrada](#16-callbacks-de-entrada)
-17. [Estructura de Carpetas](#17-estructura-de-carpetas)
-
+6. [Vértices para Paredes](#6-vértices-para-paredes)
+7. [Función pataDraw()](#7-función-patadraw)
+8. [Función cuboDraw()](#8-función-cubodraw)
+9. [Función ConfigurarVAO()](#9-función-configurarvao)
+10. [Función main() - Inicio](#10-función-main---inicio)
+11. [Inicialización de GLFW, GLEW y Ventana](#11-inicialización-de-glfw-glew-y-ventana)
+12. [Carga de Modelos y Texturas](#12-carga-de-modelos-y-texturas)
+13. [Configuración de Vértices para Primitivas](#13-configuración-de-vértices-para-primitivas)
+14. [Ciclo de Renderizado (Game Loop)](#14-ciclo-de-renderizado-game-loop)
+15. [Iluminación](#15-iluminación)
+16. [Dibujo de Escenarios](#16-dibujo-de-escenarios)
+17. [Funciones Auxiliares](#17-funciones-auxiliares)
+18. [Callbacks de Entrada](#18-callbacks-de-entrada)
+19. [Escenarios del Proyecto](#19-escenarios-del-proyecto)
+20. [Estructura de Carpetas](#20-estructura-de-carpetas)
+   
 ---
 
 ## 1. Librerías y Headers
@@ -232,7 +235,32 @@ float vertices[] = {
 
 ---
 
-## 6. Función pataDraw()
+## 6. Vértices para Paredes
+
+Los vértices para las paredes están optimizados para repetir texturas horizontalmente. Se utiliza el arreglo `verticesPared[]` con más repeticiones en las coordenadas UV:
+
+```cpp
+float verticesPared[] = {
+    // Cara Trasera (-Z) - CORREGIDO: más repeticiones horizontales
+    -0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   15.0f, 0.0f,  // Aumentado para más repeticiones
+     0.5f,  0.5f, -0.5f,   0.0f,  0.0f, -1.0f,   15.0f, 5.0f,
+     // ... (todas las caras con UV aumentadas)
+};
+```
+
+### Especificación de Caras para Paredes
+- **Cara Trasera (-Z):** UV: 0.0-15.0 (horizontal) × 0.0-5.0 (vertical)
+- **Cara Frontal (+Z):** UV: 0.0-15.0 × 0.0-5.0
+- **Cara Izquierda (-X):** UV: 0.0-5.0 × 0.0-15.0
+- **Cara Derecha (+X):** UV: 0.0-5.0 × 0.0-15.0
+- **Caras Superior e Inferior:** UV: 0.0-5.0 × 0.0-5.0
+
+**Propósito:** Las texturas se repiten más veces en las paredes para crear un patrón visual consistente
+
+---
+
+## 7. Función pataDraw()
 
 Dibuja un cubo escalable con textura, utilizado para crear estructuras como patas, paredes, etc.
 
@@ -260,7 +288,7 @@ void pataDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado,
 
 ---
 
-## 7. Función cuboDraw()
+## 8. Función cuboDraw()
 
 Similar a `pataDraw()`, pero con la diferencia de que aplica una **rotación adicional** en el eje Y.
 
@@ -282,7 +310,66 @@ modelo = Escala(Rotación(Traslación(modelo)))
 
 ---
 
-## 8. Función main() - Inicio
+## 9. Función ConfigurarVAO()
+
+Esta función centraliza la configuración de Vertex Array Objects (VAO) y Vertex Buffer Objects (VBO), eliminando código repetido en la inicialización de primitivas.
+
+```cpp
+void ConfigurarVAO(GLuint& VAO, GLuint& VBO, float* vertices, size_t size)
+{
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+
+    // Atributo de Posición (Location 0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Atributo de Normal (Location 1)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Atributo de Coordenadas de Textura (Location 2)
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(0);
+}
+```
+
+### Parámetros
+- `VAO`: Referencia al Vertex Array Object a crear
+- `VBO`: Referencia al Vertex Buffer Object a crear
+- `vertices`: Puntero al arreglo de vértices
+- `size`: Tamaño total del arreglo en bytes
+
+### Ventajas
+1. **Reutilizable:** Se usa para cubos, paredes y entrada
+2. **Limpio:** Reduce duplicación de código
+3. **Consistente:** Garantiza que todos los VAO se configuren igual
+4. **Eficiente:** Centraliza la lógica de configuración
+
+### Uso
+```cpp
+// Para cubos
+GLuint VBO_Cubo, VAO_Cubo;
+ConfigurarVAO(VAO_Cubo, VBO_Cubo, vertices, sizeof(vertices));
+
+// Para paredes
+GLuint VBO_Pared, VAO_Pared;
+ConfigurarVAO(VAO_Pared, VBO_Pared, verticesPared, sizeof(verticesPared));
+
+// Para entrada
+GLuint VBO_Entrada, VAO_Entrada;
+ConfigurarVAO(VAO_Entrada, VBO_Entrada, vertices, sizeof(vertices));
+```
+
+---
+
+## 10. Función main() - Inicio
 
 ### Estructura General
 
@@ -301,7 +388,7 @@ int main()
 
 ---
 
-## 9. Inicialización de GLFW, GLEW y Ventana
+## 11. Inicialización de GLFW, GLEW y Ventana
 
 ### Paso 1: Inicializar GLFW
 ```cpp
@@ -357,7 +444,7 @@ glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 ---
 
-## 10. Carga de Modelos y Texturas
+## 12. Carga de Modelos y Texturas
 
 ### Carga de Shaders
 ```cpp
@@ -367,7 +454,7 @@ Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
 
 ### Estructura de Carpetas para Modelos
 
-La carpeta `Models/` contiene todos los modelos 3D en formato OBJ:
+La carpeta `Models/` contiene todos los modelos 3D en formato OBJ organizados por hábitat:
 
 ```
 Models/
@@ -391,8 +478,32 @@ Models/
 │   └── iglu3d.obj             // Estructura del iglú
 ├── huevo/
 │   └── huevo.obj              // Huevo (decorativo)
-└── pino/
-    └── nievepino.obj          // Pino con nieve
+├── pino/
+│   └── nievepino.obj          // Pino con nieve
+├── oasis/
+│   └── oasis.obj              // Oasis del desierto
+├── huesos/
+│   └── huesos.obj             // Huesos (decorativo)
+├── tronco/
+│   └── tronco.obj             // Tronco (decorativo)
+├── cactus/
+│   └── Cactus.obj             // Cactus del desierto
+├── camello/
+│   ├── CamelBody.obj          // Cuerpo del camello
+│   ├── CamelCabeza.obj        // Cabeza
+│   ├── CamelPataizqEnfr.obj   // Pata delantera izq
+│   ├── CamelPataEnfreDer.obj  // Pata delantera der
+│   ├── CamelPataizqAtras.obj  // Pata trasera izq
+│   └── CamelPataAtrasDer.obj  // Pata trasera der
+├── tortuga/
+│   ├── tortuga_cuerpo.obj     // Cuerpo de la tortuga
+│   ├── tortuga_pata_izq.obj   // Pata izquierda
+│   └── tortuga_pata_der.obj   // Pata derecha
+└── condor/
+    ├── condor_cuerpo.obj      // Cuerpo del cóndor
+    ├── condor_cabeza.obj      // Cabeza
+    ├── condor_ala_der.obj     // Ala derecha
+    └── condor_ala_izq.obj     // Ala izquierda
 ```
 
 ### Carga de Modelos en Código
@@ -405,7 +516,7 @@ Model arm2((char*)"Models/pinguino/aletIzq.obj");
 Model Foca1((char*)"Models/foca/cuerpoFoca.obj");
 Model FocaCo((char*)"Models/foca/medio.obj");
 Model FocaMe((char*)"Models/foca/cola.obj");
-// ... más modelos
+// ... más modelos del acuario y desierto
 ```
 
 ### Estructura de Carpetas para Texturas
@@ -416,11 +527,12 @@ La carpeta `images/` contiene todas las texturas utilizadas en la aplicación:
 images/
 ├── ladrillo.png               // Textura de piso general
 ├── pasto.jpg                  // Textura de entrada
+├── muro.jpg                   // Textura de paredes
 ├── textnieve.jpg              // Textura del piso del acuario
 ├── selva.jpg                  // Textura del piso de selva
 ├── sabana.jpg                 // Textura del piso de sabana
 ├── sand.jpg                   // Textura de arena/desierto
-├── madera.jpg                 // Textura de madera (objetos decorativos)
+├── madera.jpg                 // Textura de madera (decorativa)
 ├── textverde.jpg              // Textura verde
 ├── textamarillo.jpg           // Textura amarilla
 └── cafe.jpg                   // Textura café
@@ -440,6 +552,11 @@ ConfigurarTexturaRepetible(pisoTextureID);
 GLuint pisoEntradaID = TextureFromFile("images/pasto.jpg", ".");
 ConfigurarTexturaRepetible(pisoEntradaID);
 
+// Texturas para paredes
+GLuint paredTextureID = TextureFromFile("images/muro.jpg", ".");
+ConfigurarTexturaRepetible(paredTextureID);
+
+// Texturas de hábitats
 GLuint pisoAcuarioTextureID = TextureFromFile("images/textnieve.jpg", ".");
 ConfigurarTexturaRepetible(pisoAcuarioTextureID);
 
@@ -455,7 +572,7 @@ ConfigurarTexturaRepetible(pisoArenaTextureID);
 
 ---
 
-## 11. Configuración de Vértices para Primitivas
+## 13. Configuración de Vértices para Primitivas
 
 ### VAO y VBO Generales
 ```cpp
@@ -476,41 +593,22 @@ glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
 glEnableVertexAttribArray(1);
 ```
 
-### VAO para Cubos (con Coordenadas de Textura)
+### VAO para Cubos (con Coordenadas de Textura) - Usando ConfigurarVAO()
 ```cpp
 GLuint VBO_Cubo, VAO_Cubo;
-glGenVertexArrays(1, &VAO_Cubo);
-glGenBuffers(1, &VBO_Cubo);
-glBindVertexArray(VAO_Cubo);
-
-glBindBuffer(GL_ARRAY_BUFFER, VBO_Cubo);
-glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-// Stride = 8 floats (3 pos + 3 norm + 2 tex)
-
-// Atributo de Posición
-glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-glEnableVertexAttribArray(0);
-
-// Atributo de Normal
-glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
-                      (void*)(3 * sizeof(float)));
-glEnableVertexAttribArray(1);
-
-// Atributo de Coordenadas de Textura
-glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
-                      (void*)(6 * sizeof(float)));
-glEnableVertexAttribArray(2);
-
-glBindVertexArray(0);
+ConfigurarVAO(VAO_Cubo, VBO_Cubo, vertices, sizeof(vertices));
 ```
 
-### VAO para Entrada
+### VAO para Paredes - Usando ConfigurarVAO()
+```cpp
+GLuint VBO_Pared, VAO_Pared;
+ConfigurarVAO(VAO_Pared, VBO_Pared, verticesPared, sizeof(verticesPared));
+```
+
+### VAO para Entrada - Usando ConfigurarVAO()
 ```cpp
 GLuint VBO_Entrada, VAO_Entrada;
-glGenVertexArrays(1, &VAO_Entrada);
-glGenBuffers(1, &VBO_Entrada);
-// ... Configuración similar a VAO_Cubo
+ConfigurarVAO(VAO_Entrada, VBO_Entrada, vertices, sizeof(vertices));
 ```
 
 ### Configuración de Uniforms de Texturas
@@ -522,7 +620,7 @@ glUniform1i(glGetUniformLocation(lightingShader.Program, "Material.specular"), 1
 
 ---
 
-## 12. Ciclo de Renderizado (Game Loop)
+## 14. Ciclo de Renderizado (Game Loop)
 
 ### Estructura del Loop
 ```cpp
@@ -559,7 +657,7 @@ DoMovement();
 
 ---
 
-## 13. Iluminación
+## 15. Iluminación
 
 ### Luz Direccional (Directional Light)
 ```cpp
@@ -630,11 +728,11 @@ glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 
 
 ---
 
-## 14. Dibujo de Escenarios
+## 16. Dibujo de Escenarios
 
 ### Distribución del Mapa
 
-El mapa se divide en 4 cuadrantes principales:
+El mapa se divide en 4 cuadrantes principales más una zona de entrada:
 
 ```
            (-X,+Z)          (+X,+Z)
@@ -646,6 +744,9 @@ El mapa se divide en 4 cuadrantes principales:
               |        |        |
            (-X,-Z)    (0,0)    (+X,-Z)
            [SABANA]  [ENTRADA] [ACUARIO]
+              
+         (+Z FRONTAL)
+         [PASTO/ENTRADA]
 ```
 
 ### Piso General
@@ -663,11 +764,37 @@ DibujarPiso(pisoEntradaID, glm::vec3(0.0f, -0.5f, 17.5f),
             glm::vec3(25.0f, 0.1f, 10.0f), VAO_Cubo, modelLoc);
 ```
 
-**Posición:** Frente al mapa (Z positivo)
+**Posición:** Frente del mapa (Z positivo)
+
+### Paredes del Escenario
+
+#### Pared Trasera (Z Negativa)
+```cpp
+DibujarPiso(paredTextureID, glm::vec3(0.0f, alturaPared / 2 - 0.5f, -tamanoBase / 2),
+    glm::vec3(tamanoBase, alturaPared, 0.2f), VAO_Pared, modelLoc);
+```
+
+#### Pared Izquierda (X Negativa)
+```cpp
+DibujarPiso(paredTextureID, glm::vec3(-tamanoBase / 2, alturaPared / 2 - 0.5f, 0.0f),
+    glm::vec3(0.2f, alturaPared, tamanoBase), VAO_Pared, modelLoc);
+```
+
+#### Pared Derecha (X Positiva)
+```cpp
+DibujarPiso(paredTextureID, glm::vec3(tamanoBase / 2, alturaPared / 2 - 0.5f, 0.0f),
+    glm::vec3(0.2f, alturaPared, tamanoBase), VAO_Pared, modelLoc);
+```
+
+**Variables de Control:**
+```cpp
+float alturaPared = 3.0f;      // Altura de las paredes
+float tamanoBase = 25.0f;      // Tamaño base del área
+```
 
 ---
 
-## 15. Funciones Auxiliares
+## 17. Funciones Auxiliares
 
 ### ConfigurarTexturaRepetible()
 ```cpp
@@ -715,11 +842,11 @@ void DibujarPiso(GLuint textureID, glm::vec3 posicion, glm::vec3 escala,
 }
 ```
 
-**Propósito:** Dibuja un cubo escalable y texturizado que actúa como piso.
+**Propósito:** Dibuja un cubo escalable y texturizado que actúa como piso, paredes o superficies planas.
 
 ---
 
-## 16. Callbacks de Entrada
+## 18. Callbacks de Entrada
 
 ### DoMovement()
 ```cpp
@@ -751,12 +878,16 @@ void DoMovement()
 - **ESC:** Cerrar aplicación
 - **Teclas WASD / Flechas:** Mover cámara
 - **Espacio:** Activar/desactivar luz dinámica
-- **C:** Animar pingüino
-- **V:** Detener animación del pingüino
-- **B:** Animar foca
-- **N:** Detener animación de foca
-- **X:** Animar delfín
-- **Z:** Detener animación de delfín
+
+**Controles de Animales - Acuario:**
+- **V:** Animar/Detener Pingüino
+- **B:** Animar/Detener Foca
+- **N:** Animar/Detener Delfín
+
+**Controles de Animales - Desierto:**
+- **C:** Animar/Detener Camello
+- **X:** Animar/Detener Tortuga
+- **Z:** Animar/Detener Cóndor
 
 ### MouseCallback()
 ```cpp
@@ -782,15 +913,39 @@ void MouseCallback(GLFWwindow* window, double xPos, double yPos)
 
 ---
 
-## 17. Estructura de Carpetas
+## 19. Escenarios del Proyecto
 
-### Estructura Recomendada del Proyecto
+El proyecto contiene **4 hábitats principales** organizados en cuadrantes:
+
+### 1. Acuario (X, -Z)
+- **Animales:** Pingüino, Foca, Delfín
+- **Documentación:** `README_Acuario.md`
+- **Elementos:** Agua, Iglú, Huevo, Pino
+
+### 2. Desierto (-X, Z)
+- **Animales:** Camello, Tortuga, Cóndor
+- **Documentación:** `README_Desierto.md`
+- **Elementos:** Oasis, Huesos, Tronco, Cactus
+
+### 3. Selva (X, Z)
+- **Estado:** En desarrollo
+- **Documentación:** Por crear
+
+### 4. Sabana (-X, -Z)
+- **Estado:** En desarrollo
+- **Documentación:** Por crear
+
+---
+
+## 20. Estructura de Carpetas
+
+### Estructura Completa del Proyecto
 
 ```
 ProyectoFinal/
 │
 ├── Project1/
-│   ├── Main.cpp                  # Archivo principal (este documento)
+│   ├── Main.cpp                  # Archivo principal
 │   ├── Shader.h                  # Clase para gestión de shaders
 │   ├── Camera.h                  # Clase para gestión de cámara
 │   ├── Model.h                   # Clase para carga de modelos
@@ -805,7 +960,7 @@ ProyectoFinal/
 │   │   ├── piso.obj              # Modelo del piso base
 │   │   ├── delfin.obj            # Modelo del delfín
 │   │   ├── agua/
-│   │   │   └── agua.obj          # Agua (acuario)
+│   │   │   └── agua.obj
 │   │   ├── pinguino/
 │   │   │   ├── cuerpo.obj
 │   │   │   ├── arm1.obj
@@ -822,12 +977,37 @@ ProyectoFinal/
 │   │   │   └── iglu3d.obj
 │   │   ├── huevo/
 │   │   │   └── huevo.obj
-│   │   └── pino/
-│   │       └── nievepino.obj
+│   │   ├── pino/
+│   │   │   └── nievepino.obj
+│   │   ├── oasis/
+│   │   │   └── oasis.obj
+│   │   ├── huesos/
+│   │   │   └── huesos.obj
+│   │   ├── tronco/
+│   │   │   └── tronco.obj
+│   │   ├── cactus/
+│   │   │   └── Cactus.obj
+│   │   ├── camello/
+│   │   │   ├── CamelBody.obj
+│   │   │   ├── CamelCabeza.obj
+│   │   │   ├── CamelPataizqEnfr.obj
+│   │   │   ├── CamelPataEnfreDer.obj
+│   │   │   ├── CamelPataizqAtras.obj
+│   │   │   └── CamelPataAtrasDer.obj
+│   │   ├── tortuga/
+│   │   │   ├── tortuga_cuerpo.obj
+│   │   │   ├── tortuga_pata_izq.obj
+│   │   │   └── tortuga_pata_der.obj
+│   │   └── condor/
+│   │       ├── condor_cuerpo.obj
+│   │       ├── condor_cabeza.obj
+│   │       ├── condor_ala_der.obj
+│   │       └── condor_ala_izq.obj
 │   │
 │   └── images/
 │       ├── ladrillo.png          # Textura piso general
 │       ├── pasto.jpg             # Textura entrada
+│       ├── muro.jpg              # Textura paredes
 │       ├── textnieve.jpg         # Textura acuario
 │       ├── selva.jpg             # Textura selva
 │       ├── sabana.jpg            # Textura sabana
@@ -837,8 +1017,9 @@ ProyectoFinal/
 │       ├── textamarillo.jpg      # Textura decorativa
 │       └── cafe.jpg              # Textura decorativa
 │
-├── README.md                     # Este archivo
-├── README_Acuario.md             # Documentación del acuario
+├── README.md                     # Documentación principal
+├── README_Acuario.md             # Documentación del Acuario
+├── README_Desierto.md            # Documentación del Desierto
 ├── Project1.sln                  # Solución de Visual Studio
 └── .gitignore
 
@@ -876,6 +1057,11 @@ Las transformaciones se aplican en orden de **escala → rotación → traslaci�
 - Se utiliza un modelo Phong completo con 3 tipos de luces
 - Las texturas especulares se aplican en la ubicación 1
 - El brillo del material se controla con `material.shininess`
+
+### Función ConfigurarVAO()
+- Centraliza la configuración de VAO y VBO
+- Reduce duplicación de código
+- Garantiza configuración consistente en todos los primitivos
 
 ---
 
