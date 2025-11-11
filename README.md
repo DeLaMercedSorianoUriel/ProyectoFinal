@@ -12,6 +12,9 @@ Este documento proporciona una guía completa de la estructura y organización d
 2. [Prototipos de Callbacks](#2-prototipos-de-callbacks)
 3. [Configuración Inicial y Variables Globales](#3-configuración-inicial-y-variables-globales)
 4. [Animaciones y Posiciones Base de Animales](#4-animaciones-y-posiciones-base-de-animales)
+   - [4.1 Acuario](#41-acuario-cuadrante-x--z)
+   - [4.2 Desierto](#42-desierto-cuadrante--x-z)
+   - [4.3 Selva](#43-selva-cuadrante-x-z)
 5. [Vértices del Cubo](#5-vértices-del-cubo)
 6. [Vértices para Paredes](#6-vértices-para-paredes)
 7. [Función pataDraw()](#7-función-patadraw)
@@ -141,64 +144,379 @@ GLfloat lastFrame = 0.0f;   // Tiempo del frame anterior
 
 ## 4. Animaciones y Posiciones Base de Animales
 
-### Pingüino (Cuadrante X, -Z)
+### 4.1 ACUARIO (Cuadrante +X, -Z)
+
+#### 🐧 Pingüino
+
 ```cpp
+// Variables de Control
 float PinAlaIzq = 0.0f;                                // Rotación del ala izquierda
 float PinAlaDer = 0.0f;                                // Rotación del ala derecha
 float PinScale = 0.70f;                                // Escala del pingüino
 glm::vec3 PinguinoPos = glm::vec3(10.0f, -0.1f, -4.0f); // Posición base
 
+// Control de Animación
 bool animarPinguino = false;                           // Estado de animación
 float startTimePinguino = 0.0f;                        // Tiempo de inicio
-bool teclaC_presionada = false;                        // Control de teclado
-
-// Activación: Tecla 'C' para animar, Tecla 'V' para detener
+bool teclaV_presionada = false;                        // Control de teclado
 ```
+
+**Componentes:** Cuerpo + 2 Alas (arm1, aletIzq)
+
+**Tecla de Control:** V (Toggle)
+
+**Tipo de Animación:** Aleteo continuo
 
 **Descripción:** El pingüino aletea sus alas de manera alternada. La animación es cíclica y se controla mediante rotaciones en el eje X de las alas.
 
-### Foca (Cuadrante X, -Z)
 ```cpp
+// Lógica de Animación
+if (animarPinguino) {
+    float t = glfwGetTime() - startTimePinguino;
+    float amplitud = 14.0f;  // Qué tanto suben y bajan (en grados)
+    float velocidad = 3.0f;   // Qué tan rápido aletea
+    float aleteo = sin(t * velocidad) * amplitud;
+    
+    PinAlaIzq = aleteo;
+    PinAlaDer = -aleteo;  // Ala opuesta para movimiento alternado
+}
+```
+
+---
+
+#### 🦭 Foca
+
+```cpp
+// Variables de Control
 float rotFocaMedio = 0.0f;                             // Rotación de la sección media
 float rotFocaCola = 0.0f;                              // Rotación de la cola
 float FocaScale = 1.6f;                                // Escala de la foca
 glm::vec3 focaPosBase = glm::vec3(5.0f, -0.17f, -9.0f); // Posición inicial
 glm::vec3 focaPosActual = focaPosBase;                 // Posición animada actual
-float focaRotY = -90.0f;                               // Rotación en el eje Y (orientación)
+float focaRotY = -90.0f;                               // Rotación en eje Y (orientación)
 
 float rotFocaPataDer = 0.0f;                           // Rotación aleta derecha
 float rotFocaPataIzq = 0.0f;                           // Rotación aleta izquierda
 
+// Control de Animación
 bool animarFoca = false;                               // Estado de animación
 float startTimeFoca = 0.0f;                            // Tiempo de inicio
 bool teclaB_presionada = false;                        // Control de teclado
-
-// Activación: Tecla 'B' para animar, Tecla 'N' para detener
 ```
+
+**Componentes:** Cuerpo + Medio + Cola + 2 Aletas (FocaDer, FocaIzq)
+
+**Tecla de Control:** B (Toggle)
+
+**Duración Total:** 14 segundos
+
+**Tipo de Animación:** Caminata + Nado
 
 **Descripción:** La foca nada en línea recta, alternando entre desplazarse en una dirección, girar 180° y regresar. Sus aletas se mueven continuamente durante el movimiento.
 
 **Jerarquía de Transformaciones:**
-- Cuerpo (Padre) → Medio (Hijo) → Cola (Hijo del Medio)
-- Cuerpo → Aleta Derecha
-- Cuerpo → Aleta Izquierda
+```
+Cuerpo (Padre) → Medio (Hijo) → Cola (Hijo del Medio)
+                y: Cuerpo → Aleta Derecha
+                y: Cuerpo → Aleta Izquierda
+```
 
-### Delfín (Cuadrante X, -Z)
+**Fases de Animación:**
+- **Fase 1 (0-4s):** Nada hacia adelante (+Z)
+- **Fase 2 (4-5s):** Giro 180°
+- **Fase 3 (5-9s):** Nada de regreso (-Z)
+- **Fase 4 (9-14s):** Giro final
+
+---
+
+#### 🐬 Delfín
+
 ```cpp
+// Variables de Control
 glm::vec3 delfinPosBase = glm::vec3(2.8f, -0.9f, -10.7f); // Posición inicial
 glm::vec3 delfinPosActual = delfinPosBase;             // Posición animada
 float delfinRotY = -90.0f;                             // Rotación en Y (dirección)
 float delfinRotX = 0.0f;                               // Cabeceo (pitch)
 float DelfinScale = 0.8f;                              // Escala del delfín
 
+// Control de Animación
 bool animarDelfin = false;                             // Estado de animación
 float startTimeDelfin = 0.0f;                          // Tiempo de inicio
-bool teclaD_presionada = false;                        // Control de teclado
-
-// Activación: Tecla 'X' para animar, Tecla 'Z' para detener
+bool teclaN_presionada = false;                        // Control de teclado
 ```
 
+**Componentes:** 1 Modelo único
+
+**Tecla de Control:** N (Toggle)
+
+**Duración Total:** 10 segundos
+
+**Tipo de Animación:** Saltos acrobáticos
+
 **Descripción:** El delfín realiza saltos en arco. Se desplaza en el eje X mientras salta hacia arriba en el eje Y, crea un efecto de salto parabólico, gira 180° y repite.
+
+**Fases de Animación:**
+- **Fase 1 (0-4s):** Primer salto hacia +X
+- **Fase 2 (4-5s):** Giro y pausa
+- **Fase 3 (5-9s):** Segundo salto hacia -X
+- **Fase 4 (9-10s):** Giro final
+
+---
+
+### 4.2 DESIERTO (Cuadrante -X, +Z)
+
+#### 🐪 Camello
+
+```cpp
+// Variables de Control
+float rotCamel = 180.0f;                               // Rotación en eje Y
+float camelLegFL = 0.0f;                               // Pata frontal izquierda
+float camelLegFR = 0.0f;                               // Pata frontal derecha
+float camelLegBL = 0.0f;                               // Pata trasera izquierda
+float camelLegBR = 0.0f;                               // Pata trasera derecha
+float camelHead = 0.0f;                                // Rotación de cabeza
+float camelScale = 0.65f;                              // Escala del camello
+glm::vec3 camelPos = glm::vec3(-6.0f, -0.5f, 10.0f);  // Posición inicial
+
+// Control de Animación
+bool animarCamello = false;                            // Estado de animación
+float startTimeCamello = 0.0f;                         // Tiempo de inicio
+bool teclaC_presionada = false;                        // Control de teclado
+```
+
+**Componentes:** Cuerpo + Cabeza + 4 Patas
+
+**Tecla de Control:** C (Toggle)
+
+**Duración Total:** 14 segundos
+
+**Tipo de Animación:** Caminata + Alimentación
+
+**Descripción:** El camello camina hacia un cactus (distancia de 5 unidades), luego se detiene y simula comer del cactus con movimientos de cabeza.
+
+**Jerarquía de Transformaciones:**
+```
+Cuerpo (Padre Principal)
+├─ Cabeza (Hijo del Cuerpo)
+├─ Pata Frontal Izquierda
+├─ Pata Frontal Derecha
+├─ Pata Trasera Izquierda
+└─ Pata Trasera Derecha
+```
+
+**Fases de Animación:**
+- **Fase 1 (0-8s):** Nada hacia el cactus
+- **Fase 2 (8-10s):** Giro y movimiento de alimentación
+- **Fase 3 (10-14s):** Regreso a la posición inicial
+
+---
+
+#### 🐢 Tortuga
+
+```cpp
+// Variables de Control
+float rotTortuga = 0.0f;                               // Rotación en eje Y
+float tortugaLegFL = 0.0f;                             // Pata frontal izquierda
+float tortugaLegFR = 0.0f;                             // Pata frontal derecha
+float tortugaScale = 0.20f;                            // Escala de la tortuga
+glm::vec3 tortugaPos = glm::vec3(-7.8f, -0.18f, 9.5f); // Posición inicial
+
+// Control de Animación
+bool animarTortuga = false;                            // Estado de animación
+float startTimeTortuga = 0.0f;                         // Tiempo de inicio
+bool teclaX_presionada = false;                        // Control de teclado
+```
+
+**Componentes:** Cuerpo + 4 Patas
+
+**Tecla de Control:** X (Toggle)
+
+**Duración Total:** 9 segundos
+
+**Tipo de Animación:** Nado + Inmersión
+
+**Descripción:** La tortuga camina hacia el agua, se sumerge progresivamente, nada bajo el agua, emerge y gira 180°.
+
+**Fases de Animación:**
+- **Fase 1 (0-2.5s):** Caminata hacia el agua
+- **Fase 2 (2.5-6s):** Inmersión y nado
+- **Fase 3 (6-9s):** Emergencia y giro final
+
+---
+
+#### 🦅 Cóndor
+
+```cpp
+// Variables de Control
+float rotCondor = 90.0f;                               // Rotación en eje Y
+float condorHead = 0.0f;                               // Rotación de cabeza
+float condorAlaIzq = 0.0f;                             // Rotación ala izquierda
+float condorAlaDer = 0.0f;                             // Rotación ala derecha
+float condorScale = 0.70f;                             // Escala del cóndor
+glm::vec3 condorPos = glm::vec3(-6.7f, 0.5f, 6.0f);   // Posición inicial
+
+// Control de Animación
+bool animarCondor = false;                             // Estado de animación
+bool teclaZ_presionada = false;                        // Control de teclado
+```
+
+**Componentes:** Cuerpo + 2 Alas
+
+**Tecla de Control:** Z (Toggle)
+
+**Tipo de Animación:** Vuelo continuo
+
+**Descripción:** El cóndor realiza aleteos rápidos continuos mientras se mantiene volando con movimientos suaves de cabeza y altura.
+
+**Fases de Animación:**
+
+**Continuo:**
+- Alas: Aleteo rápido (10 Hz)
+  - Ala Izq: sin(t*10) * 1.5°
+  - Ala Der: -sin(t*10) * 1.5°
+  
+- Cabeza: Movimiento suave de asentimiento (8 Hz)
+  - Rotación: sin(t*8) * 1.0°
+  
+- Altura: Movimiento vertical suave (0.8 Hz)
+  - Posición Y: 0.7 + sin(t*0.8) * 0.15
+
+---
+
+### 4.3 SELVA (Cuadrante +X, +Z)
+
+#### 🐫 Capibara
+
+```cpp
+// Variables de Control
+float capibaraScale = 0.7f;                            // Escala del capibara
+float rotCapibara = 180.0f;                            // Rotación en eje Y
+float capibaraCabezaRot = 0.0f;                        // Rotación de cabeza
+float capibaraNaranjaRot = 0.0f;                       // Rotación de naranja
+float capibaraPataDelDer = 0.0f;                       // Pata frontal derecha
+float capibaraPataDelIzq = 0.0f;                       // Pata frontal izquierda
+float capibaraPataTrasDer = 0.0f;                      // Pata trasera derecha
+float capibaraPataTrasIzq = 0.0f;                      // Pata trasera izquierda
+glm::vec3 capibaraPos = glm::vec3(11.0f, 0.0f, 8.0f); // Posición inicial
+
+// Control de Animación
+bool animarCapibara = false;                           // Estado de animación
+float startTimeCapibara = 0.0f;                        // Tiempo de inicio
+bool teclaP_presionada = false;                        // Control de teclado
+```
+
+**Componentes:** Cuerpo + Cabeza + Naranja + 4 Patas
+
+**Tecla de Control:** P (Toggle)
+
+**Duración Total:** 16 segundos
+
+**Tipo de Animación:** Caminata + Alimentación
+
+**Descripción:** El capibara camina desde su posición inicial (11.0, 0, 8.0) hasta llegar a un punto de alimentación (4.0, 0, 8.0), luego se detiene y simula comer mientras su naranja/fruta rota.
+
+**Jerarquía de Transformaciones:**
+```
+Cuerpo (Padre Principal)
+├─ Cabeza (Hijo del Cuerpo)
+├─ Naranja (Hijo del Cuerpo)
+├─ Pata Frontal Derecha
+├─ Pata Frontal Izquierda
+├─ Pata Trasera Derecha
+└─ Pata Trasera Izquierda
+```
+
+**Fases de Animación:**
+- **Fase 1 (0-10s):** Caminata hacia el punto de alimentación
+- **Fase 2 (10-16s):** Alimentación y rotación de la naranja
+
+---
+
+#### 🐵 Mono
+
+```cpp
+// Variables de Control
+float monoScale = 0.8f;                                // Escala del mono
+float rotMono = 180.0f;                                // Rotación en eje Y
+float monoColaRot = 0.0f;                              // Rotación de cola
+float monoPataDelDer = 0.0f;                           // Pata frontal derecha
+float monoPataDelIzq = 0.0f;                           // Pata frontal izquierda
+float monoPataTrasDer = 0.0f;                          // Pata trasera derecha
+float monoPataTrasIzq = 0.0f;                          // Pata trasera izquierda
+glm::vec3 monoPos = glm::vec3(11.0f, 0.0f, 11.0f);    // Posición inicial
+
+// Control de Animación
+bool animarMono = false;                               // Estado de animación
+float startTimeMono = 0.0f;                            // Tiempo de inicio
+bool teclaM_presionada = false;                        // Control de teclado
+```
+
+**Componentes:** Cuerpo + Cola + 4 Patas
+
+**Tecla de Control:** M (Toggle)
+
+**Duración Total:** 5.9 segundos
+
+**Tipo de Animación:** Saltos acrobáticos + Caminata
+
+**Descripción:** El mono realiza una serie de saltos acrobáticos consecutivos alternando con aterrizajes, luego camina hacia un destino final.
+
+**Jerarquía de Transformaciones:**
+```
+Cuerpo (Padre Principal)
+├─ Cola (Hijo del Cuerpo)
+├─ Pata Frontal Derecha
+├─ Pata Frontal Izquierda
+├─ Pata Trasera Derecha
+└─ Pata Trasera Izquierda
+```
+
+**Fases de Animación:**
+- **Fase 1 (0-1.5s):** Primer salto acrobático
+- **Fase 2 (1.5-1.7s):** Aterrizaje
+- **Fase 3 (1.7-3.2s):** Segundo salto acrobático
+- **Fase 4 (3.2-3.4s):** Aterrizaje
+- **Fase 5 (3.4-4.9s):** Tercer salto acrobático
+- **Fase 6 (4.9-5.9s):** Caminata hacia el destino
+
+---
+
+#### 🦜 Guacamaya
+
+```cpp
+// Variables de Control
+float guacamayaScale = 1.0f;                           // Escala de guacamaya
+float rotGuacamaya = 270.0f;                           // Rotación inicial en eje Y
+float guacamayaAlaDer = 0.0f;                          // Rotación ala derecha
+float guacamayaAlaIzq = 0.0f;                          // Rotación ala izquierda
+glm::vec3 guacamayaPos = glm::vec3(11.1f, 1.55f, 6.5f); // Posición inicial
+
+// Control de Animación
+bool animarGuacamaya = false;                          // Estado de animación
+float startTimeGuacamaya = 0.0f;                       // Tiempo de inicio
+bool teclaO_presionada = false;                        // Control de teclado
+```
+
+**Componentes:** Cuerpo + 2 Alas
+
+**Tecla de Control:** O (Toggle)
+
+**Duración Total:** 12 segundos
+
+**Tipo de Animación:** Vuelo + Percha
+
+**Descripción:** La guacamaya vuela en línea recta desplazándose horizontalmente, luego desciende gradualmente hacia una rama donde se posa.
+
+**Jerarquía de Transformaciones:**
+```
+Cuerpo (Padre Principal)
+├─ Ala Derecha (Hijo del Cuerpo)
+└─ Ala Izquierda (Hijo del Cuerpo)
+```
+
+**Fases de Animación:**
+- **Fase 1 (0-8s):** Vuelo horizontal con aleteo
+- **Fase 2 (8-12s):** Descenso y posado en la rama
 
 ---
 
@@ -889,6 +1207,11 @@ void DoMovement()
 - **X:** Animar/Detener Tortuga
 - **Z:** Animar/Detener Cóndor
 
+**Controles de Animales - Selva:**
+- **P:** Animar/Detener Capibara
+- **M:** Animar/Detener Mono
+- **O:** Animar/Detener Guacamaya
+
 ### MouseCallback()
 ```cpp
 void MouseCallback(GLFWwindow* window, double xPos, double yPos)
@@ -1020,6 +1343,7 @@ ProyectoFinal/
 ├── README.md                     # Documentación principal
 ├── README_Acuario.md             # Documentación del Acuario
 ├── README_Desierto.md            # Documentación del Desierto
+├── README_Selva.md              # Documentación de la Selva
 ├── Project1.sln                  # Solución de Visual Studio
 └── .gitignore
 
