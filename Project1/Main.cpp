@@ -308,50 +308,22 @@ glm::vec3 Light1 = glm::vec3(0);
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
 GLfloat lastFrame = 0.0f;  	// Time of last frame
 
-
-void pataDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint uniformModel, GLuint VAO, GLuint texturaID)
+void cuboDraw(glm::mat4 parentModel, glm::vec3 escala, glm::vec3 traslado, GLint uniformModel, GLuint VAO, GLuint texturaID, float rotacion)
 {
-	// 1. Configurar la matriz del modelo para esta parte
-	modelo = glm::mat4(1);
-	modelo = glm::scale(modelo, escala); // tamaño
-	modelo = glm::translate(modelo, traslado);// posición
-	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(modelo));
+	// 1. Crear la transformación LOCAL de este cubo
+	glm::mat4 localModel = glm::mat4(1.0f);
+	localModel = glm::translate(localModel, traslado); // primero traslación
+	localModel = glm::rotate(localModel, rotacion, glm::vec3(0.0f, 1.0f, 0.0f)); // luego rotación
+	localModel = glm::scale(localModel, escala); // finalmente escala
 
-	// 2. Activar y enlazar la textura específica para esta parte
-	//    Asumimos que el shader ya tiene los uniforms de sampler (material.diffuse = 0, material.specular = 1)
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texturaID);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, texturaID); // Usamos la misma textura para difuso y especular
+	// 2. Combinarla con la transformación del PADRE
+	// multiplicamos la matriz del padre por la matriz local
+	glm::mat4 finalModel = parentModel * localModel;
 
-	// 3. Enlazar el VAO del cubo
-	glBindVertexArray(VAO);
+	// 3. Enviar el resultado final al shader
+	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(finalModel));
 
-	// 4. *** CRÍTICO *** Habilitar TODOS los atributos que usa lightingShader
-	// (El lampShader los deshabilita, así que hay que volver a habilitarlos)
-	glEnableVertexAttribArray(0); // Posición
-	glEnableVertexAttribArray(1); // Normal
-	glEnableVertexAttribArray(2); // TexCoords
-
-	// 5. Dibujar el cubo
-	glDrawArrays(GL_TRIANGLES, 0, 36);
-
-	// 6. Desvincular (buena práctica)
-	glBindVertexArray(0);
-
-
-}
-
-void cuboDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint uniformModel, GLuint VAO, GLuint texturaID, float rotacion)
-{
-	// 1. Configurar la matriz del modelo para esta parte
-	modelo = glm::mat4(1);
-	modelo = glm::translate(modelo, traslado);// primero traslaci�n
-	modelo = glm::rotate(modelo, rotacion, glm::vec3(0.0f, 1.0f, 0.0f)); // luego rotaci�n
-	modelo = glm::scale(modelo, escala); // finalmente escala
-	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(modelo));
-
-	// 2. Activar y enlazar la textura
+	// --- El resto de tu función es igual ---
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texturaID);
 	glActiveTexture(GL_TEXTURE1);
@@ -366,6 +338,134 @@ void cuboDraw(glm::mat4 modelo, glm::vec3 escala, glm::vec3 traslado, GLint unif
 	glBindVertexArray(0);
 }
 
+//--------------------------------------------
+//Funciones de los modelos hechos en OpenGL
+// -------------------------------------------
+// 
+ // -------------------------------
+ // maceta completa
+// -------------------------------
+void dibujarMacetaCompleta(glm::mat4 parentModel, GLint modelLoc, GLuint VAO_Cubo, GLuint cafeTextureID, GLuint greenTextureID, GLuint amarilloTextureID)
+{
+	// Centro de la maceta: (0, 0, 0)
+	// Base (Y original era 0.5, el centro era 0.75 -> -0.25)
+	cuboDraw(parentModel, glm::vec3(0.5f, 0.1f, 0.5f), glm::vec3(0.0f, -0.25f, 0.0f), modelLoc, VAO_Cubo, cafeTextureID, 0.0f);
+
+	// Paredes (Y original era 0.75 -> 0.0)
+	cuboDraw(parentModel, glm::vec3(0.5f, 0.4f, 0.05f), glm::vec3(0.0f, 0.0f, -0.225f), modelLoc, VAO_Cubo, cafeTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(0.5f, 0.4f, 0.05f), glm::vec3(0.0f, 0.0f, 0.225f), modelLoc, VAO_Cubo, cafeTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(0.05f, 0.4f, 0.4f), glm::vec3(-0.225f, 0.0f, 0.0f), modelLoc, VAO_Cubo, cafeTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(0.05f, 0.4f, 0.4f), glm::vec3(0.225f, 0.0f, 0.0f), modelLoc, VAO_Cubo, cafeTextureID, 0.0f);
+
+	// Tierra (Y original 0.875 -> 0.125)
+	cuboDraw(parentModel, glm::vec3(0.4f, 0.05f, 0.4f), glm::vec3(0.0f, 0.125f, 0.0f), modelLoc, VAO_Cubo, cafeTextureID, 0.0f);
+
+	// Flor (Y original 1.15 -> 0.4)
+	cuboDraw(parentModel, glm::vec3(0.05f, 0.5f, 0.05f), glm::vec3(0.0f, 0.4f, 0.0f), modelLoc, VAO_Cubo, greenTextureID, 0.0f);
+
+	// Pistilo (Y original 1.45 -> 0.7)
+	cuboDraw(parentModel, glm::vec3(0.1f, 0.1f, 0.1f), glm::vec3(0.0f, 0.7f, 0.0f), modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);
+
+	// Pétalos
+	cuboDraw(parentModel, glm::vec3(0.2f, 0.2f, 0.05f), glm::vec3(0.0f, 0.7f, 0.075f), modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(0.2f, 0.2f, 0.05f), glm::vec3(0.0f, 0.7f, -0.075f), modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(0.05f, 0.2f, 0.2f), glm::vec3(0.075f, 0.7f, 0.0f), modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(0.05f, 0.2f, 0.2f), glm::vec3(-0.075f, 0.7f, 0.0f), modelLoc, VAO_Cubo, amarilloTextureID, 0.0f);
+}
+
+void dibujarSilla(glm::mat4 parentModel, GLint modelLoc, GLuint VAO_Cubo, GLuint armTextureID)
+{
+	// 1. Asiento (Este es nuestro centro local (0,0,0))
+	// Escala: (0.4 ancho, 0.05 grosor, 0.4 profundo)
+	cuboDraw(parentModel, glm::vec3(0.4f, 0.05f, 0.4f),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+
+	// 2. Patas
+	// El asiento termina en y = -0.025. Las patas (0.4 de alto)
+	// se centran en y = -0.025 - (0.4/2) = -0.225
+	float pataCentroY = -0.225f;
+	float pataLargo = 0.4f;
+	float pataGrosor = 0.05f;
+
+	// Desplazamiento desde el centro para las patas
+	// (Borde del asiento 0.2) - (Mitad de pata 0.025) = 0.175
+	float pataOffsetX = 0.175f;
+	float pataOffsetZ = 0.175f;
+
+	// Pata delantera derecha
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataLargo, pataGrosor),
+		glm::vec3(pataOffsetX, pataCentroY, pataOffsetZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+
+	// Pata delantera izquierda
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataLargo, pataGrosor),
+		glm::vec3(-pataOffsetX, pataCentroY, pataOffsetZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+
+	// Pata trasera izquierda
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataLargo, pataGrosor),
+		glm::vec3(-pataOffsetX, pataCentroY, -pataOffsetZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+
+	// Pata trasera derecha
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataLargo, pataGrosor),
+		glm::vec3(pataOffsetX, pataCentroY, -pataOffsetZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+
+	// 3. Respaldo
+	// El asiento termina en y = 0.025. El respaldo (0.4 de alto)
+	// se centra en y = 0.025 + (0.4/2) = 0.225
+	// Se alinea con el borde trasero (z = -0.2)
+	float respaldoCentroY = 0.225f;
+	float respaldoCentroZ = -0.2f + (pataGrosor / 2.0f); // -0.175f
+
+	cuboDraw(parentModel, glm::vec3(0.4f, 0.4f, 0.05f),
+		glm::vec3(0.0f, respaldoCentroY, respaldoCentroZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+}
+
+void dibujarMesa(glm::mat4 parentModel, GLint modelLoc, GLuint VAO_Cubo, GLuint armTextureID)
+{
+	// Dimensiones de la mesa
+	float topAncho = 2.0f;
+	float topGrosor = 0.05f;
+	float topProf = 1.2f;
+	float pataAlto = 0.8f;
+	float pataGrosor = 0.1f;
+
+	// 1. Tabla Superior
+	// La centramos en (0,0,0)
+	cuboDraw(parentModel, glm::vec3(topAncho, topGrosor, topProf),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f);
+
+	// 2. Patas
+	// La parte inferior del tablero está en y = -topGrosor/2 = -0.025
+	// El centro de las patas estará en y = -0.025 - (pataAlto/2)
+	float pataCentroY = -(topGrosor / 2.0f) - (pataAlto / 2.0f); // Aprox: -0.425f
+
+	// Posición de las patas (un poco adentro de las esquinas del tablero)
+	float pataPosX = (topAncho / 2.0f) - (pataGrosor / 2.0f); // Aprox: 0.95f
+	float pataPosZ = (topProf / 2.0f) - (pataGrosor / 2.0f); // Aprox: 0.55f
+
+	// Patas
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataAlto, pataGrosor),
+		glm::vec3(pataPosX, pataCentroY, pataPosZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f); //pata1
+
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataAlto, pataGrosor),
+		glm::vec3(-pataPosX, pataCentroY, pataPosZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f); //pata2
+
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataAlto, pataGrosor),
+		glm::vec3(-pataPosX, pataCentroY, -pataPosZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f); //pata3
+
+	cuboDraw(parentModel, glm::vec3(pataGrosor, pataAlto, pataGrosor),
+		glm::vec3(pataPosX, pataCentroY, -pataPosZ),
+		modelLoc, VAO_Cubo, armTextureID, 0.0f); //pata4
+}
 
 
 int main()
@@ -425,8 +525,7 @@ int main()
 	// 						CARGA DE MODELOS - Acuario (X,-Z)
 	// =================================================================================
 
-	Model Piso((char*)"Models/piso.obj");
-	Model Delfin((char*)"Models/delfin.obj");
+	/*Model Delfin((char*)"Models/delfin.obj");
 	Model cuerpoPin((char*)"Models/pinguino/cuerpo.obj");
 	Model arm1((char*)"Models/pinguino/arm1.obj");
 	Model arm2((char*)"Models/pinguino/aletIzq.obj");
@@ -438,7 +537,7 @@ int main()
 	Model FocaIzq((char*)"Models/foca/FocaIzq.obj");
 	Model iglu((char*)"Models/iglu/iglu3d.obj");
 	Model huevo((char*)"Models/huevo/huevo.obj");
-	Model pino((char*)"Models/pino/nievepino.obj");
+	Model pino((char*)"Models/pino/nievepino.obj");*/
 
 	// Carga textura
 	GLuint armTextureID = TextureFromFile("images/madera.jpg", ".");
@@ -452,102 +551,102 @@ int main()
 	// =================================================================================
 
 		// ====== ESCENARIO ======
-	Model ArbolSelva((char*)"Models/arbolSelva/arbolSelva.obj");
-	glm::vec3 arbolSelvaPos(11.0f, -0.5f, 3.1f);
-	glm::vec3 arbolSelvaScale(0.2f, 0.2f, 0.2f);
-	float arbolSelvaRot = 0.0f;
+	//Model ArbolSelva((char*)"Models/arbolSelva/arbolSelva.obj");
+	//glm::vec3 arbolSelvaPos(11.0f, -0.5f, 3.1f);
+	//glm::vec3 arbolSelvaScale(0.2f, 0.2f, 0.2f);
+	//float arbolSelvaRot = 0.0f;
 
-	Model Sandia((char*)"Models/sandia/sandia.obj");
-	glm::vec3 sandiaPos(3.0f, -0.2f, 8.0f);
-	glm::vec3 sandiaScale(1.0f, 1.0f, 1.0f);
-	float sandiaRot = 180.0f;
+	//Model Sandia((char*)"Models/sandia/sandia.obj");
+	//glm::vec3 sandiaPos(3.0f, -0.2f, 8.0f);
+	//glm::vec3 sandiaScale(1.0f, 1.0f, 1.0f);
+	//float sandiaRot = 180.0f;
 
-	Model TroncoSelva1((char*)"Models/troncoSelva/troncoSelva.obj");
-	glm::vec3 troncoSelva1Pos(10.0f, -0.2f, 11.0f);
-	glm::vec3 troncoSelva1Scale(1.0f, 0.7f, 1.0f);
-	float troncoSelva1Rot = 0.0f;
+	//Model TroncoSelva1((char*)"Models/troncoSelva/troncoSelva.obj");
+	//glm::vec3 troncoSelva1Pos(10.0f, -0.2f, 11.0f);
+	//glm::vec3 troncoSelva1Scale(1.0f, 0.7f, 1.0f);
+	//float troncoSelva1Rot = 0.0f;
 
-	Model TroncoSelva2((char*)"Models/troncoSelva/troncoSelva.obj");
-	glm::vec3 troncoSelva2Pos(5.5f, -0.2f, 11.0f);
-	glm::vec3 troncoSelva2Scale(1.0f, 0.5f, 1.0f);
-	float troncoSelva2Rot = 0.0f;
+	//Model TroncoSelva2((char*)"Models/troncoSelva/troncoSelva.obj");
+	//glm::vec3 troncoSelva2Pos(5.5f, -0.2f, 11.0f);
+	//glm::vec3 troncoSelva2Scale(1.0f, 0.5f, 1.0f);
+	//float troncoSelva2Rot = 0.0f;
 
-	Model Pelota((char*)"Models/pelota/pelota.obj");
-	glm::vec3 pelotaPos(5.5f, -0.2f, 11.0f);
-	glm::vec3 pelotaScale(0.5f, 0.5f, 0.5f);
-	float pelotaRot = 0.0f;
+	//Model Pelota((char*)"Models/pelota/pelota.obj");
+	//glm::vec3 pelotaPos(5.5f, -0.2f, 11.0f);
+	//glm::vec3 pelotaScale(0.5f, 0.5f, 0.5f);
+	//float pelotaRot = 0.0f;
 
-	Model Platano1((char*)"Models/platano/platano.obj");
-	glm::vec3 platano1Pos(11.0f, -0.4f, 11.8f);
-	glm::vec3 platano1Scale(5.0f, 5.0f, 5.0f);
-	float platano1Rot = 0.0f;
+	//Model Platano1((char*)"Models/platano/platano.obj");
+	//glm::vec3 platano1Pos(11.0f, -0.4f, 11.8f);
+	//glm::vec3 platano1Scale(5.0f, 5.0f, 5.0f);
+	//float platano1Rot = 0.0f;
 
-	Model Platano2((char*)"Models/platano/platano.obj");
-	glm::vec3 platano2Pos(7.6f, -0.4f, 9.8f);
-	glm::vec3 platano2Scale(5.0f, 5.0f, 5.0f);
-	float platano2Rot = 0.0f;
+	//Model Platano2((char*)"Models/platano/platano.obj");
+	//glm::vec3 platano2Pos(7.6f, -0.4f, 9.8f);
+	//glm::vec3 platano2Scale(5.0f, 5.0f, 5.0f);
+	//float platano2Rot = 0.0f;
 
-	Model Gato((char*)"Models/platano/gato.obj");
-	glm::vec3 gatoPos(3.2f, 0.0f, 11.9f);
-	glm::vec3 gatoScale(0.5f, 0.5f, 0.5f);
-	float gatoRot = 90.0f;
+	//Model Gato((char*)"Models/platano/gato.obj");
+	//glm::vec3 gatoPos(3.2f, 0.0f, 11.9f);
+	//glm::vec3 gatoScale(0.5f, 0.5f, 0.5f);
+	//float gatoRot = 90.0f;
 
-	Model ArbolRama((char*)"Models/arbolRama/arbolRama.obj");
-	glm::vec3 arbolRamaPos(11.0f, 0.6f, 6.0f);
-	glm::vec3 arbolRamaScale(2.5f, 2.5f, 2.5f);
-	float arbolRamaRot = 0.0f;
+	//Model ArbolRama((char*)"Models/arbolRama/arbolRama.obj");
+	//glm::vec3 arbolRamaPos(11.0f, 0.6f, 6.0f);
+	//glm::vec3 arbolRamaScale(2.5f, 2.5f, 2.5f);
+	//float arbolRamaRot = 0.0f;
 
-	Model RamaSelva((char*)"Models/ramaSelva/ramaSelva.obj");
-	glm::vec3 ramaSelvaPos(3.0f, 0.15f, 6.0f);
-	glm::vec3 ramaSelvaScale(2.5f, 2.5f, 4.0f);
-	float ramaSelvaRot = 0.0f;
+	//Model RamaSelva((char*)"Models/ramaSelva/ramaSelva.obj");
+	//glm::vec3 ramaSelvaPos(3.0f, 0.15f, 6.0f);
+	//glm::vec3 ramaSelvaScale(2.5f, 2.5f, 4.0f);
+	//float ramaSelvaRot = 0.0f;
 
-	Model PlantaSelva1((char*)"Models/plantaSelva/planta_selva.obj");
-	glm::vec3 plantaSelva1Pos(8.5f, -0.3f, 3.1f);
-	glm::vec3 plantaSelva1Scale(0.4f, 0.4f, 0.4f);
-	float plantaSelva1Rot = 0.0f;
+	//Model PlantaSelva1((char*)"Models/plantaSelva/planta_selva.obj");
+	//glm::vec3 plantaSelva1Pos(8.5f, -0.3f, 3.1f);
+	//glm::vec3 plantaSelva1Scale(0.4f, 0.4f, 0.4f);
+	//float plantaSelva1Rot = 0.0f;
 
-	Model PlantaSelva2((char*)"Models/plantaSelva/planta_selva.obj");
-	glm::vec3 plantaSelva2Pos(11.0f, -0.3f, 9.5f);
-	glm::vec3 plantaSelva2Scale(0.4f, 0.4f, 0.4f);
-	float plantaSelva2Rot = 0.0f;
+	//Model PlantaSelva2((char*)"Models/plantaSelva/planta_selva.obj");
+	//glm::vec3 plantaSelva2Pos(11.0f, -0.3f, 9.5f);
+	//glm::vec3 plantaSelva2Scale(0.4f, 0.4f, 0.4f);
+	//float plantaSelva2Rot = 0.0f;
 
-	Model Loto1((char*)"Models/loto/loto.obj");
-	glm::vec3 loto1Pos(6.5f, -0.21f, 3.1f);
-	glm::vec3 loto1Scale(1.0f, 1.0f, 1.0f);
-	float loto1Rot = 0.0f;
+	//Model Loto1((char*)"Models/loto/loto.obj");
+	//glm::vec3 loto1Pos(6.5f, -0.21f, 3.1f);
+	//glm::vec3 loto1Scale(1.0f, 1.0f, 1.0f);
+	//float loto1Rot = 0.0f;
 
-	Model Loto2((char*)"Models/loto/loto.obj");
-	glm::vec3 loto2Pos(5.0f, -0.21f, 3.1f);
-	glm::vec3 loto2Scale(1.0f, 1.0f, 1.0f);
-	float loto2Rot = 0.0f;
+	//Model Loto2((char*)"Models/loto/loto.obj");
+	//glm::vec3 loto2Pos(5.0f, -0.21f, 3.1f);
+	//glm::vec3 loto2Scale(1.0f, 1.0f, 1.0f);
+	//float loto2Rot = 0.0f;
 
-	Model Loto3((char*)"Models/loto/loto.obj");
-	glm::vec3 loto3Pos(3.5f, -0.21f, 3.1f);
-	glm::vec3 loto3Scale(1.0f, 1.0f, 1.0f);
-	float loto3Rot = 0.0f;
+	//Model Loto3((char*)"Models/loto/loto.obj");
+	//glm::vec3 loto3Pos(3.5f, -0.21f, 3.1f);
+	//glm::vec3 loto3Scale(1.0f, 1.0f, 1.0f);
+	//float loto3Rot = 0.0f;
 
-	// ====== CAPIBARA ======
-	Model Capibara_Cabeza((char*)"Models/capibara/cabezaCapi.obj");
-	Model Capibara_Cuerpo((char*)"Models/capibara/cuerpoCapi.obj");
-	Model Capibara_Naranja((char*)"Models/capibara/naranjaCapi.obj");
-	Model Capibara_PataDelDer((char*)"Models/capibara/pataDelDerCapi.obj");
-	Model Capibara_PataDelIzq((char*)"Models/capibara/pataDelIzqCapi.obj");
-	Model Capibara_PataTrasDer((char*)"Models/capibara/pataTrasDerCapi.obj");
-	Model Capibara_PataTrasIzq((char*)"Models/capibara/pataTrasIzqCapi.obj");
+	//// ====== CAPIBARA ======
+	//Model Capibara_Cabeza((char*)"Models/capibara/cabezaCapi.obj");
+	//Model Capibara_Cuerpo((char*)"Models/capibara/cuerpoCapi.obj");
+	//Model Capibara_Naranja((char*)"Models/capibara/naranjaCapi.obj");
+	//Model Capibara_PataDelDer((char*)"Models/capibara/pataDelDerCapi.obj");
+	//Model Capibara_PataDelIzq((char*)"Models/capibara/pataDelIzqCapi.obj");
+	//Model Capibara_PataTrasDer((char*)"Models/capibara/pataTrasDerCapi.obj");
+	//Model Capibara_PataTrasIzq((char*)"Models/capibara/pataTrasIzqCapi.obj");
 
-	// ====== MONO ======
-	Model Mono_Cuerpo((char*)"Models/mono/cuerpoMono.obj");
-	Model Mono_Cola((char*)"Models/mono/colaMono.obj");
-	Model Mono_PataDelDer((char*)"Models/mono/pataDelDerMono.obj");
-	Model Mono_PataDelIzq((char*)"Models/mono/pataDelIzqMono.obj");
-	Model Mono_PataTrasDer((char*)"Models/mono/pataTasDerMono.obj");
-	Model Mono_PataTrasIzq((char*)"Models/mono/pataTrasIzqMono.obj");
+	//// ====== MONO ======
+	//Model Mono_Cuerpo((char*)"Models/mono/cuerpoMono.obj");
+	//Model Mono_Cola((char*)"Models/mono/colaMono.obj");
+	//Model Mono_PataDelDer((char*)"Models/mono/pataDelDerMono.obj");
+	//Model Mono_PataDelIzq((char*)"Models/mono/pataDelIzqMono.obj");
+	//Model Mono_PataTrasDer((char*)"Models/mono/pataTasDerMono.obj");
+	//Model Mono_PataTrasIzq((char*)"Models/mono/pataTrasIzqMono.obj");
 
-	// ====== GUACAMAYA ======
-	Model Ave_Cuerpo((char*)"Models/aveSelva/cuerpoAve.obj");
-	Model Ave_AlaDer((char*)"Models/aveSelva/alaDerAve.obj");
-	Model Ave_AlaIzq((char*)"Models/aveSelva/alaIzqAve.obj");
+	//// ====== GUACAMAYA ======
+	//Model Ave_Cuerpo((char*)"Models/aveSelva/cuerpoAve.obj");
+	//Model Ave_AlaDer((char*)"Models/aveSelva/alaDerAve.obj");
+	//Model Ave_AlaIzq((char*)"Models/aveSelva/alaIzqAve.obj");
 
 
 
@@ -560,49 +659,49 @@ int main()
 	//  ************ Codigo comentado para no cargar todo desde el inicio se descomenta al final *******
 
 
-	// ====== ESCENARIO ======
-	Model Oasis((char*)"Models/oasis/oasis.obj");
-	glm::vec3 oasisPos(-9.5f, -0.64f, 9.5f);
-	glm::vec3 oasisScale(20.0f, 20.0f, 20.0f);
-	float oasisRot = 270.0f;
+	//// ====== ESCENARIO ======
+	//Model Oasis((char*)"Models/oasis/oasis.obj");
+	//glm::vec3 oasisPos(-9.5f, -0.64f, 9.5f);
+	//glm::vec3 oasisScale(20.0f, 20.0f, 20.0f);
+	//float oasisRot = 270.0f;
 
-	Model Huesos((char*)"Models/huesos/huesos.obj");
-	glm::vec3 huesosPos(-8.5f, -0.6f, 4.0f);
-	glm::vec3 huesosScale(0.3f, 0.25f, 0.25f);
-	float huesosRot = 90.0f;
+	//Model Huesos((char*)"Models/huesos/huesos.obj");
+	//glm::vec3 huesosPos(-8.5f, -0.6f, 4.0f);
+	//glm::vec3 huesosScale(0.3f, 0.25f, 0.25f);
+	//float huesosRot = 90.0f;
 
-	Model Tronco((char*)"Models/tronco/tronco.obj");
-	glm::vec3 troncoPos(-6.8f, -0.5f, 6.0f);
-	glm::vec3 troncoScale(0.7f, 0.7f, 0.7f);
-	float troncoRot = 0.0f;
-
-
-	Model Cactus((char*)"Models/cactus/Cactus.obj");
-	glm::vec3 cactusPos(-6.0f, -0.5f, 3.7f);
-	glm::vec3 cactusScale(0.04f, 0.04f, 0.04f);
-	float cactusRot = 0.0f;
-
-		// ====== CAMELLO ======
-	Model CamelBody((char*)"Models/camello/CamelBody.obj");
-	Model CamelHead((char*)"Models/camello/CamelCabeza.obj");
-	Model CamelLeg_FL((char*)"Models/camello/CamelPataizqEnfr.obj");
-	Model CamelLeg_FR((char*)"Models/camello/CamelPataEnfreDer.obj");
-	Model CamelLeg_BL((char*)"Models/camello/CamelPataizqAtras.obj");
-	Model CamelLeg_BR((char*)"Models/camello/CamelPataAtrasDer.obj");
-
-	// ====== TORTUGA ======
-	Model TortugaBody((char*)"Models/tortuga/tortuga_cuerpo.obj");
-	Model TortugaLeg_FL((char*)"Models/tortuga/tortuga_pata_izq.obj");
-	Model TortugaLeg_FR((char*)"Models/tortuga/tortuga_pata_der.obj");
+	//Model Tronco((char*)"Models/tronco/tronco.obj");
+	//glm::vec3 troncoPos(-6.8f, -0.5f, 6.0f);
+	//glm::vec3 troncoScale(0.7f, 0.7f, 0.7f);
+	//float troncoRot = 0.0f;
 
 
-	// ====== CÓNDOR ======
-	Model CondorBody((char*)"Models/condor/condor_cuerpo.obj");
-	Model CondorHead((char*)"Models/condor/condor_cabeza.obj");
-	Model CondorAla_Der((char*)"Models/condor/condor_ala_der.obj");
-	Model CondorAla_Izq((char*)"Models/condor/condor_ala_izq.obj");
+	//Model Cactus((char*)"Models/cactus/Cactus.obj");
+	//glm::vec3 cactusPos(-6.0f, -0.5f, 3.7f);
+	//glm::vec3 cactusScale(0.04f, 0.04f, 0.04f);
+	//float cactusRot = 0.0f;
 
-	std::cout << "Modelos cargados!" << std::endl;
+	//	// ====== CAMELLO ======
+	//Model CamelBody((char*)"Models/camello/CamelBody.obj");
+	//Model CamelHead((char*)"Models/camello/CamelCabeza.obj");
+	//Model CamelLeg_FL((char*)"Models/camello/CamelPataizqEnfr.obj");
+	//Model CamelLeg_FR((char*)"Models/camello/CamelPataEnfreDer.obj");
+	//Model CamelLeg_BL((char*)"Models/camello/CamelPataizqAtras.obj");
+	//Model CamelLeg_BR((char*)"Models/camello/CamelPataAtrasDer.obj");
+
+	//// ====== TORTUGA ======
+	//Model TortugaBody((char*)"Models/tortuga/tortuga_cuerpo.obj");
+	//Model TortugaLeg_FL((char*)"Models/tortuga/tortuga_pata_izq.obj");
+	//Model TortugaLeg_FR((char*)"Models/tortuga/tortuga_pata_der.obj");
+
+
+	//// ====== CÓNDOR ======
+	//Model CondorBody((char*)"Models/condor/condor_cuerpo.obj");
+	//Model CondorHead((char*)"Models/condor/condor_cabeza.obj");
+	//Model CondorAla_Der((char*)"Models/condor/condor_ala_der.obj");
+	//Model CondorAla_Izq((char*)"Models/condor/condor_ala_izq.obj");
+
+	//std::cout << "Modelos cargados!" << std::endl;
 
 	// =================================================================================
 	// 						CARGA DE MODELOS - Sabana (-X,-Z)
@@ -866,332 +965,332 @@ int main()
 		// **** DIBUJOS DEL PISO Y ACCESORIOS DE ACUARIO ****
 		DibujarPiso(pisoAcuarioTextureID, glm::vec3(7.25f, -0.49f, -7.25f), glm::vec3(10.5f, 0.1f, 10.5f), VAO_Cubo, modelLoc);
 
-			//modelo Agua
-		glm::mat4 textAgua = glm::mat4(1.0f);
-		textAgua = glm::translate(textAgua, glm::vec3(7.24f, -0.5f, -10.9f));
-		textAgua = glm::rotate(textAgua, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		textAgua = glm::scale(textAgua, glm::vec3(1.6f, 0.05f, 3.3f));
-		//glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(textAgua));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		Agua.Draw(lightingShader);
-		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
-		glBindVertexArray(0);
+		//	//modelo Agua
+		//glm::mat4 textAgua = glm::mat4(1.0f);
+		//textAgua = glm::translate(textAgua, glm::vec3(7.24f, -0.5f, -10.9f));
+		//textAgua = glm::rotate(textAgua, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//textAgua = glm::scale(textAgua, glm::vec3(1.6f, 0.05f, 3.3f));
+		////glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(textAgua));
+		//glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		//Agua.Draw(lightingShader);
+		////glDisable(GL_BLEND);  //Desactiva el canal alfa 
+		//glBindVertexArray(0);
 
-		//modelo IGLU
-		glm::mat4 Iglu3d = glm::mat4(1.0f);
-		Iglu3d = glm::translate(Iglu3d, glm::vec3(9.9f, 0.5f, -7.0f));
-		Iglu3d = glm::rotate(Iglu3d, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		Iglu3d = glm::scale(Iglu3d, glm::vec3(4.0f, 4.0f, 4.0f));
-		//glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(Iglu3d));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		iglu.Draw(lightingShader);
-		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
-		glBindVertexArray(0);
+		////modelo IGLU
+		//glm::mat4 Iglu3d = glm::mat4(1.0f);
+		//Iglu3d = glm::translate(Iglu3d, glm::vec3(9.9f, 0.5f, -7.0f));
+		//Iglu3d = glm::rotate(Iglu3d, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//Iglu3d = glm::scale(Iglu3d, glm::vec3(4.0f, 4.0f, 4.0f));
+		////glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(Iglu3d));
+		//glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		//iglu.Draw(lightingShader);
+		////glDisable(GL_BLEND);  //Desactiva el canal alfa 
+		//glBindVertexArray(0);
 
-		//modelo huevo
-		glm::mat4 pingu = glm::mat4(1.0f);
-		pingu = glm::translate(pingu, glm::vec3(9.9f, -0.3f, -7.0f));
-		pingu = glm::rotate(pingu, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		pingu = glm::scale(pingu, glm::vec3(0.4f, 0.4f, 0.4f));
-		//glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(pingu));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		huevo.Draw(lightingShader);
-		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
-		glBindVertexArray(0);
+		////modelo huevo
+		//glm::mat4 pingu = glm::mat4(1.0f);
+		//pingu = glm::translate(pingu, glm::vec3(9.9f, -0.3f, -7.0f));
+		//pingu = glm::rotate(pingu, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//pingu = glm::scale(pingu, glm::vec3(0.4f, 0.4f, 0.4f));
+		////glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(pingu));
+		//glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		//huevo.Draw(lightingShader);
+		////glDisable(GL_BLEND);  //Desactiva el canal alfa 
+		//glBindVertexArray(0);
 
-		//modelo pino
-		glm::mat4 nievePino = glm::mat4(1.0f);
-		nievePino = glm::translate(nievePino, glm::vec3(2.9f, 1.15f, -3.1f));
-		nievePino = glm::rotate(nievePino, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		nievePino = glm::scale(nievePino, glm::vec3(3.2f, 3.2f, 3.2f));
-		//glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(nievePino));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		pino.Draw(lightingShader);
-		//glDisable(GL_BLEND);  //Desactiva el canal alfa 
-		glBindVertexArray(0);
-
-
+		////modelo pino
+		//glm::mat4 nievePino = glm::mat4(1.0f);
+		//nievePino = glm::translate(nievePino, glm::vec3(2.9f, 1.15f, -3.1f));
+		//nievePino = glm::rotate(nievePino, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//nievePino = glm::scale(nievePino, glm::vec3(3.2f, 3.2f, 3.2f));
+		////glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(nievePino));
+		//glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		//pino.Draw(lightingShader);
+		////glDisable(GL_BLEND);  //Desactiva el canal alfa 
+		//glBindVertexArray(0);
 
 
-		// **** DIBUJO DE ANIMALES ACUARIO ****
-
-		// --- FOCA ANIMADA ---
-		if (animarFoca)
-		{
-			// Obtener el tiempo transcurrido
-			float t = glfwGetTime() - startTimeFoca;
-
-			// --- Parámetros de la Animación ---
-			float moveDuration = 4.0f; // 6 segundos de avance
-			float turnDuration = 1.0f; // 1 segundo para girar
-			float totalLoopTime = (moveDuration + turnDuration) * 2.0f; // 14 segundos en total
-			float t_loop = fmod(t, totalLoopTime); // Tiempo en el bucle actual (0 a 14)
-
-			float moveDist = 6.0f; // Qué tan lejos avanza (distancia total del recorrido)
-			float aleteoVelocidad = 4.0f; // Velocidad de aleteo (patas)
-			float colaVelocidad = 2.2f; // Velocidad de cola
-
-			// --- Amplitudes SUTILES (Corregidas) ---
-			float ampPata = 8.0f;      // Amplitud Patas (Reducido de 25)
-			float ampColaMedio = 2.0f; // Amplitud Media (Como tu código anterior)
-			float ampColaFin = 3.0f;   // Amplitud Cola (Un poco más que el medio)
 
 
-			// --- Máquina de Estados (Corregida) ---
-			if (t_loop < moveDuration) // --- Estado 1: Mover a +Z (0 a 6 seg) ---
-			{
-				float phase = t_loop / moveDuration; // 0.0 a 1.0
-				focaPosActual.z = focaPosBase.z + (phase * moveDist); // Avanza hacia -Z (acercándose)
-				focaPosActual.x = focaPosBase.x; // X se mantiene
-				focaRotY = -90.0f; // Mirando hacia -Z
+		//// **** DIBUJO DE ANIMALES ACUARIO ****
 
-				// Aleteo Patas (en Eje X)
-				rotFocaPataDer = sin(t * aleteoVelocidad) * ampPata;
-				rotFocaPataIzq = -sin(t * aleteoVelocidad) * ampPata;
-				// Aleteo Cola (en Eje Z - Vertical)
-				rotFocaMedio = sin(t * colaVelocidad) * ampColaMedio;
-				rotFocaCola = sin(t * colaVelocidad + 0.6f) * ampColaFin;
-			}
-			else if (t_loop < moveDuration + turnDuration) // --- Estado 2: Giro 1 (6 a 7 seg) ---
-			{
-				focaPosActual.z = focaPosBase.z + moveDist; // Se queda en el destino
-				float phase = (t_loop - moveDuration) / turnDuration; // 0.0 a 1.0
-				focaRotY = -90.0f + (phase * 180.0f); // Giro de -90 a +90
+		//// --- FOCA ANIMADA ---
+		//if (animarFoca)
+		//{
+		//	// Obtener el tiempo transcurrido
+		//	float t = glfwGetTime() - startTimeFoca;
 
-				// Detener aleteo
-				rotFocaPataDer = 0.0f; rotFocaPataIzq = 0.0f;
-				rotFocaMedio = 0.0f; rotFocaCola = 0.0f;
-			}
-			else if (t_loop < (moveDuration * 2.0f) + turnDuration) // --- Estado 3: Mover a -Z (7 a 13 seg) ---
-			{
-				float phase = (t_loop - (moveDuration + turnDuration)) / moveDuration; // 0.0 a 1.0
-				focaPosActual.z = (focaPosBase.z + moveDist) - (phase * moveDist); // Regresa a pos inicial
-				focaPosActual.x = focaPosBase.x;
-				focaRotY = 90.0f; // Mirando hacia -Z
+		//	// --- Parámetros de la Animación ---
+		//	float moveDuration = 4.0f; // 6 segundos de avance
+		//	float turnDuration = 1.0f; // 1 segundo para girar
+		//	float totalLoopTime = (moveDuration + turnDuration) * 2.0f; // 14 segundos en total
+		//	float t_loop = fmod(t, totalLoopTime); // Tiempo en el bucle actual (0 a 14)
 
-				// Aleteo Patas (en Eje X)
-				rotFocaPataDer = sin(t * aleteoVelocidad) * ampPata;
-				rotFocaPataIzq = -sin(t * aleteoVelocidad) * ampPata;
-				// Aleteo Cola (en Eje Z - Vertical)
-				rotFocaMedio = sin(t * colaVelocidad) * ampColaMedio;
-				rotFocaCola = sin(t * colaVelocidad + 0.6f) * ampColaFin;
-			}
-			else // --- Estado 4: Giro 2 (13 a 14 seg) ---
-			{
-				focaPosActual.z = focaPosBase.z; // Se queda en el inicio
-				float phase = (t_loop - (moveDuration * 2.0f + turnDuration)) / turnDuration; // 0.0 a 1.0
-				focaRotY = 90.0f + (phase * 180.0f); // Giro de 90 a 270 (que es -90)
+		//	float moveDist = 6.0f; // Qué tan lejos avanza (distancia total del recorrido)
+		//	float aleteoVelocidad = 4.0f; // Velocidad de aleteo (patas)
+		//	float colaVelocidad = 2.2f; // Velocidad de cola
 
-				// Detener aleteo
-				rotFocaPataDer = 0.0f; rotFocaPataIzq = 0.0f;
-				rotFocaMedio = 0.0f; rotFocaCola = 0.0f;
-			}
-		}
-		else
-		{
-			// Resetear a posición inicial si no está animada
-			focaPosActual = focaPosBase;
-			focaRotY = -90.0f; // Listo para empezar (mirando a +Z)
-			rotFocaMedio = 0.0f;
-			rotFocaCola = 0.0f;
-			rotFocaPataDer = 0.0f;
-			rotFocaPataIzq = 0.0f;
-		}
+		//	// --- Amplitudes SUTILES (Corregidas) ---
+		//	float ampPata = 8.0f;      // Amplitud Patas (Reducido de 25)
+		//	float ampColaMedio = 2.0f; // Amplitud Media (Como tu código anterior)
+		//	float ampColaFin = 3.0f;   // Amplitud Cola (Un poco más que el medio)
 
 
-		// Jerarquía: Cuerpo -> Medio -> Cola
-		//          y: Cuerpo -> AletaDer
-		//          y: Cuerpo -> AletaIzq
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		//	// --- Máquina de Estados (Corregida) ---
+		//	if (t_loop < moveDuration) // --- Estado 1: Mover a +Z (0 a 6 seg) ---
+		//	{
+		//		float phase = t_loop / moveDuration; // 0.0 a 1.0
+		//		focaPosActual.z = focaPosBase.z + (phase * moveDist); // Avanza hacia -Z (acercándose)
+		//		focaPosActual.x = focaPosBase.x; // X se mantiene
+		//		focaRotY = -90.0f; // Mirando hacia -Z
 
-		// 1. CUERPO (Padre Principal) [Foca1]
-		glm::mat4 modelCuerpo = glm::mat4(1.0f);
-		modelCuerpo = glm::translate(modelCuerpo, focaPosActual); // Mover a la posición animada
-		modelCuerpo = glm::rotate(modelCuerpo, glm::radians(focaRotY), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación animada
-		modelCuerpo = glm::scale(modelCuerpo, glm::vec3(FocaScale)); // Escala general
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelCuerpo));
-		Foca1.Draw(lightingShader); // Dibuja Cuerpo
+		//		// Aleteo Patas (en Eje X)
+		//		rotFocaPataDer = sin(t * aleteoVelocidad) * ampPata;
+		//		rotFocaPataIzq = -sin(t * aleteoVelocidad) * ampPata;
+		//		// Aleteo Cola (en Eje Z - Vertical)
+		//		rotFocaMedio = sin(t * colaVelocidad) * ampColaMedio;
+		//		rotFocaCola = sin(t * colaVelocidad + 0.6f) * ampColaFin;
+		//	}
+		//	else if (t_loop < moveDuration + turnDuration) // --- Estado 2: Giro 1 (6 a 7 seg) ---
+		//	{
+		//		focaPosActual.z = focaPosBase.z + moveDist; // Se queda en el destino
+		//		float phase = (t_loop - moveDuration) / turnDuration; // 0.0 a 1.0
+		//		focaRotY = -90.0f + (phase * 180.0f); // Giro de -90 a +90
 
-		// 2. MEDIO (Hijo del Cuerpo) [FocaCo]
-		glm::mat4 modelMedio = modelCuerpo; // Hereda
-		glm::vec3 pivotMedio = glm::vec3(0.0f, 0.0f, -1.0f); // ¡AJUSTA ESTO!
-		modelMedio = glm::translate(modelMedio, pivotMedio);
-		modelMedio = glm::rotate(modelMedio, glm::radians(rotFocaMedio), glm::vec3(0.0f, 0.0f, 1.0f)); // <-- CORREGIDO: Rotar en Eje Z (Vertical)
-		modelMedio = glm::translate(modelMedio, -pivotMedio);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMedio));
-		FocaCo.Draw(lightingShader); // Dibuja Medio
+		//		// Detener aleteo
+		//		rotFocaPataDer = 0.0f; rotFocaPataIzq = 0.0f;
+		//		rotFocaMedio = 0.0f; rotFocaCola = 0.0f;
+		//	}
+		//	else if (t_loop < (moveDuration * 2.0f) + turnDuration) // --- Estado 3: Mover a -Z (7 a 13 seg) ---
+		//	{
+		//		float phase = (t_loop - (moveDuration + turnDuration)) / moveDuration; // 0.0 a 1.0
+		//		focaPosActual.z = (focaPosBase.z + moveDist) - (phase * moveDist); // Regresa a pos inicial
+		//		focaPosActual.x = focaPosBase.x;
+		//		focaRotY = 90.0f; // Mirando hacia -Z
 
-		// 3. COLA (Hijo del Medio) [FocaMe]
-		glm::mat4 modelCola = modelMedio; // Hereda
-		glm::vec3 pivotCola = glm::vec3(0.0f, 0.0f, -0.8f);
-		modelCola = glm::translate(modelCola, pivotCola);
-		modelCola = glm::rotate(modelCola, glm::radians(rotFocaCola), glm::vec3(0.0f, 0.0f, 1.0f)); // <-- CORREGIDO: Rotar en Eje Z (Vertical)
-		modelCola = glm::translate(modelCola, -pivotCola);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelCola));
-		FocaMe.Draw(lightingShader); // Dibuja Cola
+		//		// Aleteo Patas (en Eje X)
+		//		rotFocaPataDer = sin(t * aleteoVelocidad) * ampPata;
+		//		rotFocaPataIzq = -sin(t * aleteoVelocidad) * ampPata;
+		//		// Aleteo Cola (en Eje Z - Vertical)
+		//		rotFocaMedio = sin(t * colaVelocidad) * ampColaMedio;
+		//		rotFocaCola = sin(t * colaVelocidad + 0.6f) * ampColaFin;
+		//	}
+		//	else // --- Estado 4: Giro 2 (13 a 14 seg) ---
+		//	{
+		//		focaPosActual.z = focaPosBase.z; // Se queda en el inicio
+		//		float phase = (t_loop - (moveDuration * 2.0f + turnDuration)) / turnDuration; // 0.0 a 1.0
+		//		focaRotY = 90.0f + (phase * 180.0f); // Giro de 90 a 270 (que es -90)
 
-		// 4. ALETA DERECHA (Hijo del Cuerpo) [FocaDer]
-		glm::mat4 FocaPataDerecha = modelCuerpo; // Hereda del CUERPO
-		glm::vec3 pivotPataDer = glm::vec3(0.3f, 0.1f, -0.2f); 
-		FocaPataDerecha = glm::translate(FocaPataDerecha, pivotPataDer);
-		FocaPataDerecha = glm::rotate(FocaPataDerecha, glm::radians(rotFocaPataDer), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotar en Z (Aleteo)
-		FocaPataDerecha = glm::translate(FocaPataDerecha, -pivotPataDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(FocaPataDerecha));
-		FocaDer.Draw(lightingShader); // Dibuja Aleta Derecha
-
-		// 5. ALETA IZQUIERDA (Hijo del Cuerpo) [FocaIzq]
-		glm::mat4 FocaPataIzq = modelCuerpo; // Hereda del CUERPO
-		glm::vec3 pivotPataIzq = glm::vec3(-0.3f, 0.1f, -0.2f); 
-		FocaPataIzq = glm::translate(FocaPataIzq, pivotPataIzq);
-		FocaPataIzq = glm::rotate(FocaPataIzq, glm::radians(rotFocaPataIzq), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotar en Z (Aleteo)
-		FocaPataIzq = glm::translate(FocaPataIzq, -pivotPataIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(FocaPataIzq));
-		FocaIzq.Draw(lightingShader); // Dibuja Aleta Izquierda
-
-		glBindVertexArray(0); // Desvincular al final
-
-
-		//fin de foca
-
-		// -------Inicio Delfin ----------
-
-		if (animarDelfin)
-		{
-			float t = glfwGetTime() - startTimeDelfin;
-
-			// --- Definir parámetros del salto ---
-			float jumpDuration = 4.0f; // 4 segundos para el salto de ida
-			float turnDuration = 1.0f; // 1 segundo para girar
-			float totalLoopTime = (jumpDuration + turnDuration) * 2.0f; // 10 segundos en total
-			float t_loop = fmod(t, totalLoopTime); // Tiempo en el bucle actual (0 a 10)
-
-			float jumpDist = 9.0f; // Qué tan lejos salta (en X)
-			float jumpHeight = 2.8f; // Qué tan alto salta (en Y)
-			float pitchAngle = -20.0f; // Ángulo de "mirar arriba" (rotación en X)
-
-			// --- Máquina de Estados de la Animación ---
-			if (t_loop < jumpDuration) // --- Estado 1: Primer Salto (hacia +X) ---
-			{
-				float phase = t_loop / jumpDuration; // 0.0 a 1.0
-				delfinPosActual.x = delfinPosBase.x + (phase * jumpDist); // Mover en X
-				delfinPosActual.y = delfinPosBase.y + (sin(phase * 3.14159f) * jumpHeight); // Arco en Y
-				delfinPosActual.z = delfinPosBase.z; // Z se mantiene constante
-				delfinRotX = pitchAngle; // Mirar arriba
-				delfinRotY = 0.0f; // Mirando hacia +X
-			}
-			else if (t_loop < jumpDuration + turnDuration) // --- Estado 2: Primer Giro (gira a -X) ---
-			{
-				delfinPosActual.x = delfinPosBase.x + jumpDist; // Se queda en la posición de aterrizaje
-				delfinPosActual.y = delfinPosBase.y;
-				delfinPosActual.z = delfinPosBase.z;
-				delfinRotX = 0.0f; // Se nivela
-
-				float phase = (t_loop - jumpDuration) / turnDuration; // 0.0 a 1.0
-				delfinRotY = 0.0f + (phase * 180.0f); // Giro de -90 a +90 grados
-			}
-			else if (t_loop < jumpDuration * 2.0f + turnDuration) // --- Estado 3: Segundo Salto (hacia -X) ---
-			{
-				float phase = (t_loop - (jumpDuration + turnDuration)) / jumpDuration; // 0.0 a 1.0
-				delfinPosActual.x = (delfinPosBase.x + jumpDist) - (phase * jumpDist); // Mover de regreso en X
-				delfinPosActual.y = delfinPosBase.y + (sin(phase * 3.14159f) * jumpHeight); // Arco en Y
-				delfinPosActual.z = delfinPosBase.z;
-				delfinRotX = pitchAngle; // Mirar arriba
-				delfinRotY = -180.0f; // Mirando hacia -X
-			}
-			else // --- Estado 4: Segundo Giro (gira a +X) ---
-			{
-				delfinPosActual.x = delfinPosBase.x; // Se queda en la posición inicial
-				delfinPosActual.y = delfinPosBase.y;
-				delfinPosActual.z = delfinPosBase.z;
-				delfinRotX = 0.0f; // Se nivela
-
-				float phase = (t_loop - (jumpDuration * 2.0f + turnDuration)) / turnDuration; // 0.0 a 1.0
-				delfinRotY = -180.0f + (phase * 180.0f); // Giro de 90 a 270 grados (que es -90)
-			}
-		}
-		else
-		{
-			// Resetear a posición inicial si no está animada
-			delfinPosActual = delfinPosBase;
-			delfinRotX = 0.0f;
-			delfinRotY = 0.0f; // Mirando hacia +X (listo para empezar)
-		}
-
-		glm::mat4 delfin = glm::mat4(1.0f);
-		delfin = glm::translate(delfin, delfinPosActual); // 1. Mover a la posición actual
-		delfin = glm::rotate(delfin, glm::radians(delfinRotY), glm::vec3(0.0f, 1.0f, 0.0f)); // 2. Girar (Yaw)
-		delfin = glm::rotate(delfin, glm::radians(delfinRotX), glm::vec3(0.0f, 0.0f, 1.0f)); // 3. Cabecear (Pitch)
-		delfin = glm::scale(delfin, glm::vec3(DelfinScale)); // 4. Escalar
-
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(delfin));
-		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
-		Delfin.Draw(lightingShader);
-		glBindVertexArray(0);
-
-		// -------Fin Delfin ----------
+		//		// Detener aleteo
+		//		rotFocaPataDer = 0.0f; rotFocaPataIzq = 0.0f;
+		//		rotFocaMedio = 0.0f; rotFocaCola = 0.0f;
+		//	}
+		//}
+		//else
+		//{
+		//	// Resetear a posición inicial si no está animada
+		//	focaPosActual = focaPosBase;
+		//	focaRotY = -90.0f; // Listo para empezar (mirando a +Z)
+		//	rotFocaMedio = 0.0f;
+		//	rotFocaCola = 0.0f;
+		//	rotFocaPataDer = 0.0f;
+		//	rotFocaPataIzq = 0.0f;
+		//}
 
 
-		// --- INICIO PINGUINO ---
-		if (animarPinguino)
-		{
-			// Obtener el tiempo transcurrido desde que se inició la animación
-			float t = glfwGetTime() - startTimePinguino;
+		//// Jerarquía: Cuerpo -> Medio -> Cola
+		////          y: Cuerpo -> AletaDer
+		////          y: Cuerpo -> AletaIzq
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
 
-			// Definir la animación
-			float amplitud = 14.0f; // Qué tanto suben y bajan (en grados)
-			float velocidad = 3.0f;  // Qué tan rápido aletea
-			float aleteo = sin(t * velocidad) * amplitud;
+		//// 1. CUERPO (Padre Principal) [Foca1]
+		//glm::mat4 modelCuerpo = glm::mat4(1.0f);
+		//modelCuerpo = glm::translate(modelCuerpo, focaPosActual); // Mover a la posición animada
+		//modelCuerpo = glm::rotate(modelCuerpo, glm::radians(focaRotY), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación animada
+		//modelCuerpo = glm::scale(modelCuerpo, glm::vec3(FocaScale)); // Escala general
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelCuerpo));
+		//Foca1.Draw(lightingShader); // Dibuja Cuerpo
 
-			PinAlaIzq = aleteo;
-			PinAlaDer = -aleteo; // Ala opuesta para movimiento alternado
-		}
-		// Cuerpo del Pinguino
-		glm::mat4 PinguinoCuerpo = glm::mat4(1.0f);
-		PinguinoCuerpo = glm::translate(PinguinoCuerpo, PinguinoPos); // Usa la variable de posición
-		PinguinoCuerpo = glm::rotate(PinguinoCuerpo, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación base
-		PinguinoCuerpo = glm::scale(PinguinoCuerpo, glm::vec3(PinScale)); // Escala
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(PinguinoCuerpo));
-		cuerpoPin.Draw(lightingShader);
-		glBindVertexArray(0);
+		//// 2. MEDIO (Hijo del Cuerpo) [FocaCo]
+		//glm::mat4 modelMedio = modelCuerpo; // Hereda
+		//glm::vec3 pivotMedio = glm::vec3(0.0f, 0.0f, -1.0f); // ¡AJUSTA ESTO!
+		//modelMedio = glm::translate(modelMedio, pivotMedio);
+		//modelMedio = glm::rotate(modelMedio, glm::radians(rotFocaMedio), glm::vec3(0.0f, 0.0f, 1.0f)); // <-- CORREGIDO: Rotar en Eje Z (Vertical)
+		//modelMedio = glm::translate(modelMedio, -pivotMedio);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMedio));
+		//FocaCo.Draw(lightingShader); // Dibuja Medio
 
-		// Ala Derecha (arm1)
-		glm::mat4 PinguinoDer = glm::mat4(1.0f);
-		PinguinoDer = glm::translate(PinguinoDer, PinguinoPos); // 1. Mover a la posición base
-		PinguinoDer = glm::rotate(PinguinoDer, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // 2. Rotar base
+		//// 3. COLA (Hijo del Medio) [FocaMe]
+		//glm::mat4 modelCola = modelMedio; // Hereda
+		//glm::vec3 pivotCola = glm::vec3(0.0f, 0.0f, -0.8f);
+		//modelCola = glm::translate(modelCola, pivotCola);
+		//modelCola = glm::rotate(modelCola, glm::radians(rotFocaCola), glm::vec3(0.0f, 0.0f, 1.0f)); // <-- CORREGIDO: Rotar en Eje Z (Vertical)
+		//modelCola = glm::translate(modelCola, -pivotCola);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelCola));
+		//FocaMe.Draw(lightingShader); // Dibuja Cola
 
-		// *** APLICAR ANIMACIÓN DE ALATEO (Rotación en Eje Z) ***
-		PinguinoDer = glm::rotate(PinguinoDer, glm::radians(PinAlaDer), glm::vec3(1.0f, 0.0f, 0.0f));
+		//// 4. ALETA DERECHA (Hijo del Cuerpo) [FocaDer]
+		//glm::mat4 FocaPataDerecha = modelCuerpo; // Hereda del CUERPO
+		//glm::vec3 pivotPataDer = glm::vec3(0.3f, 0.1f, -0.2f); 
+		//FocaPataDerecha = glm::translate(FocaPataDerecha, pivotPataDer);
+		//FocaPataDerecha = glm::rotate(FocaPataDerecha, glm::radians(rotFocaPataDer), glm::vec3(0.0f, 0.0f, 1.0f)); // Rotar en Z (Aleteo)
+		//FocaPataDerecha = glm::translate(FocaPataDerecha, -pivotPataDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(FocaPataDerecha));
+		//FocaDer.Draw(lightingShader); // Dibuja Aleta Derecha
 
-		PinguinoDer = glm::scale(PinguinoDer, glm::vec3(PinScale)); // 4. Escalar
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(PinguinoDer));
-		arm1.Draw(lightingShader);
-		glBindVertexArray(0);
+		//// 5. ALETA IZQUIERDA (Hijo del Cuerpo) [FocaIzq]
+		//glm::mat4 FocaPataIzq = modelCuerpo; // Hereda del CUERPO
+		//glm::vec3 pivotPataIzq = glm::vec3(-0.3f, 0.1f, -0.2f); 
+		//FocaPataIzq = glm::translate(FocaPataIzq, pivotPataIzq);
+		//FocaPataIzq = glm::rotate(FocaPataIzq, glm::radians(rotFocaPataIzq), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotar en Z (Aleteo)
+		//FocaPataIzq = glm::translate(FocaPataIzq, -pivotPataIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(FocaPataIzq));
+		//FocaIzq.Draw(lightingShader); // Dibuja Aleta Izquierda
 
-		// Ala Izquierda (arm2)
-		// Nota: El código original tenía un error, usaba PinguinoDer como base para PinguinoIzq
-		glm::mat4 PinguinoIzq = glm::mat4(1.0f);
-		PinguinoIzq = glm::translate(PinguinoIzq, PinguinoPos); // 1. Mover a la posición base
-		PinguinoIzq = glm::rotate(PinguinoIzq, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // 2. Rotar base
+		//glBindVertexArray(0); // Desvincular al final
 
-		// *** APLICAR ANIMACIÓN DE ALATEO (Rotación en Eje Z) ***
-		PinguinoIzq = glm::rotate(PinguinoIzq, glm::radians(PinAlaIzq), glm::vec3(1.0f, 0.0f, 0.0f));
 
-		PinguinoIzq = glm::scale(PinguinoIzq, glm::vec3(PinScale)); // 4. Escalar
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(PinguinoIzq));
-		arm2.Draw(lightingShader);
-		glBindVertexArray(0);
+		////fin de foca
 
-		// --- FIN PINGUINO ---
+		//// -------Inicio Delfin ----------
+
+		//if (animarDelfin)
+		//{
+		//	float t = glfwGetTime() - startTimeDelfin;
+
+		//	// --- Definir parámetros del salto ---
+		//	float jumpDuration = 4.0f; // 4 segundos para el salto de ida
+		//	float turnDuration = 1.0f; // 1 segundo para girar
+		//	float totalLoopTime = (jumpDuration + turnDuration) * 2.0f; // 10 segundos en total
+		//	float t_loop = fmod(t, totalLoopTime); // Tiempo en el bucle actual (0 a 10)
+
+		//	float jumpDist = 9.0f; // Qué tan lejos salta (en X)
+		//	float jumpHeight = 2.8f; // Qué tan alto salta (en Y)
+		//	float pitchAngle = -20.0f; // Ángulo de "mirar arriba" (rotación en X)
+
+		//	// --- Máquina de Estados de la Animación ---
+		//	if (t_loop < jumpDuration) // --- Estado 1: Primer Salto (hacia +X) ---
+		//	{
+		//		float phase = t_loop / jumpDuration; // 0.0 a 1.0
+		//		delfinPosActual.x = delfinPosBase.x + (phase * jumpDist); // Mover en X
+		//		delfinPosActual.y = delfinPosBase.y + (sin(phase * 3.14159f) * jumpHeight); // Arco en Y
+		//		delfinPosActual.z = delfinPosBase.z; // Z se mantiene constante
+		//		delfinRotX = pitchAngle; // Mirar arriba
+		//		delfinRotY = 0.0f; // Mirando hacia +X
+		//	}
+		//	else if (t_loop < jumpDuration + turnDuration) // --- Estado 2: Primer Giro (gira a -X) ---
+		//	{
+		//		delfinPosActual.x = delfinPosBase.x + jumpDist; // Se queda en la posición de aterrizaje
+		//		delfinPosActual.y = delfinPosBase.y;
+		//		delfinPosActual.z = delfinPosBase.z;
+		//		delfinRotX = 0.0f; // Se nivela
+
+		//		float phase = (t_loop - jumpDuration) / turnDuration; // 0.0 a 1.0
+		//		delfinRotY = 0.0f + (phase * 180.0f); // Giro de -90 a +90 grados
+		//	}
+		//	else if (t_loop < jumpDuration * 2.0f + turnDuration) // --- Estado 3: Segundo Salto (hacia -X) ---
+		//	{
+		//		float phase = (t_loop - (jumpDuration + turnDuration)) / jumpDuration; // 0.0 a 1.0
+		//		delfinPosActual.x = (delfinPosBase.x + jumpDist) - (phase * jumpDist); // Mover de regreso en X
+		//		delfinPosActual.y = delfinPosBase.y + (sin(phase * 3.14159f) * jumpHeight); // Arco en Y
+		//		delfinPosActual.z = delfinPosBase.z;
+		//		delfinRotX = pitchAngle; // Mirar arriba
+		//		delfinRotY = -180.0f; // Mirando hacia -X
+		//	}
+		//	else // --- Estado 4: Segundo Giro (gira a +X) ---
+		//	{
+		//		delfinPosActual.x = delfinPosBase.x; // Se queda en la posición inicial
+		//		delfinPosActual.y = delfinPosBase.y;
+		//		delfinPosActual.z = delfinPosBase.z;
+		//		delfinRotX = 0.0f; // Se nivela
+
+		//		float phase = (t_loop - (jumpDuration * 2.0f + turnDuration)) / turnDuration; // 0.0 a 1.0
+		//		delfinRotY = -180.0f + (phase * 180.0f); // Giro de 90 a 270 grados (que es -90)
+		//	}
+		//}
+		//else
+		//{
+		//	// Resetear a posición inicial si no está animada
+		//	delfinPosActual = delfinPosBase;
+		//	delfinRotX = 0.0f;
+		//	delfinRotY = 0.0f; // Mirando hacia +X (listo para empezar)
+		//}
+
+		//glm::mat4 delfin = glm::mat4(1.0f);
+		//delfin = glm::translate(delfin, delfinPosActual); // 1. Mover a la posición actual
+		//delfin = glm::rotate(delfin, glm::radians(delfinRotY), glm::vec3(0.0f, 1.0f, 0.0f)); // 2. Girar (Yaw)
+		//delfin = glm::rotate(delfin, glm::radians(delfinRotX), glm::vec3(0.0f, 0.0f, 1.0f)); // 3. Cabecear (Pitch)
+		//delfin = glm::scale(delfin, glm::vec3(DelfinScale)); // 4. Escalar
+
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(delfin));
+		//glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		//Delfin.Draw(lightingShader);
+		//glBindVertexArray(0);
+
+		//// -------Fin Delfin ----------
+
+
+		//// --- INICIO PINGUINO ---
+		//if (animarPinguino)
+		//{
+		//	// Obtener el tiempo transcurrido desde que se inició la animación
+		//	float t = glfwGetTime() - startTimePinguino;
+
+		//	// Definir la animación
+		//	float amplitud = 14.0f; // Qué tanto suben y bajan (en grados)
+		//	float velocidad = 3.0f;  // Qué tan rápido aletea
+		//	float aleteo = sin(t * velocidad) * amplitud;
+
+		//	PinAlaIzq = aleteo;
+		//	PinAlaDer = -aleteo; // Ala opuesta para movimiento alternado
+		//}
+		//// Cuerpo del Pinguino
+		//glm::mat4 PinguinoCuerpo = glm::mat4(1.0f);
+		//PinguinoCuerpo = glm::translate(PinguinoCuerpo, PinguinoPos); // Usa la variable de posición
+		//PinguinoCuerpo = glm::rotate(PinguinoCuerpo, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotación base
+		//PinguinoCuerpo = glm::scale(PinguinoCuerpo, glm::vec3(PinScale)); // Escala
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(PinguinoCuerpo));
+		//cuerpoPin.Draw(lightingShader);
+		//glBindVertexArray(0);
+
+		//// Ala Derecha (arm1)
+		//glm::mat4 PinguinoDer = glm::mat4(1.0f);
+		//PinguinoDer = glm::translate(PinguinoDer, PinguinoPos); // 1. Mover a la posición base
+		//PinguinoDer = glm::rotate(PinguinoDer, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // 2. Rotar base
+
+		//// *** APLICAR ANIMACIÓN DE ALATEO (Rotación en Eje Z) ***
+		//PinguinoDer = glm::rotate(PinguinoDer, glm::radians(PinAlaDer), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		//PinguinoDer = glm::scale(PinguinoDer, glm::vec3(PinScale)); // 4. Escalar
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(PinguinoDer));
+		//arm1.Draw(lightingShader);
+		//glBindVertexArray(0);
+
+		//// Ala Izquierda (arm2)
+		//// Nota: El código original tenía un error, usaba PinguinoDer como base para PinguinoIzq
+		//glm::mat4 PinguinoIzq = glm::mat4(1.0f);
+		//PinguinoIzq = glm::translate(PinguinoIzq, PinguinoPos); // 1. Mover a la posición base
+		//PinguinoIzq = glm::rotate(PinguinoIzq, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // 2. Rotar base
+
+		//// *** APLICAR ANIMACIÓN DE ALATEO (Rotación en Eje Z) ***
+		//PinguinoIzq = glm::rotate(PinguinoIzq, glm::radians(PinAlaIzq), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		//PinguinoIzq = glm::scale(PinguinoIzq, glm::vec3(PinScale)); // 4. Escalar
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(PinguinoIzq));
+		//arm2.Draw(lightingShader);
+		//glBindVertexArray(0);
+
+		//// --- FIN PINGUINO ---
 
 
 
@@ -1202,467 +1301,467 @@ int main()
 		// **** DIBUJO DEL PISO SELVA Y ACCESORIOS SELVA ****
 		DibujarPiso(pisoSelvaTextureID, glm::vec3(7.25f, -0.49f, 7.25f), glm::vec3(10.5f, 0.1f, 10.5f), VAO_Cubo, modelLoc);
 
-		// --- ÁRBOL ---
-		model = glm::mat4(1);
-		model = glm::translate(model, arbolSelvaPos);
-		model = glm::scale(model, arbolSelvaScale);
-		model = glm::rotate(model, glm::radians(arbolSelvaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		ArbolSelva.Draw(lightingShader);
+		//// --- ÁRBOL ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, arbolSelvaPos);
+		//model = glm::scale(model, arbolSelvaScale);
+		//model = glm::rotate(model, glm::radians(arbolSelvaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//ArbolSelva.Draw(lightingShader);
 
-		// --- SANDÍA ---
-		model = glm::mat4(1);
-		model = glm::translate(model, sandiaPos);
-		model = glm::scale(model, sandiaScale);
-		model = glm::rotate(model, glm::radians(sandiaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Sandia.Draw(lightingShader);
+		//// --- SANDÍA ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, sandiaPos);
+		//model = glm::scale(model, sandiaScale);
+		//model = glm::rotate(model, glm::radians(sandiaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Sandia.Draw(lightingShader);
 
-		// --- TRONCO 1 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, troncoSelva1Pos);
-		model = glm::scale(model, troncoSelva1Scale);
-		model = glm::rotate(model, glm::radians(troncoSelva1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		TroncoSelva1.Draw(lightingShader);
+		//// --- TRONCO 1 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, troncoSelva1Pos);
+		//model = glm::scale(model, troncoSelva1Scale);
+		//model = glm::rotate(model, glm::radians(troncoSelva1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//TroncoSelva1.Draw(lightingShader);
 
-		// --- PELOTA ---
-		model = glm::mat4(1);
-		model = glm::translate(model, pelotaPos);
-		model = glm::scale(model, pelotaScale);
-		model = glm::rotate(model, glm::radians(pelotaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Pelota.Draw(lightingShader);
+		//// --- PELOTA ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, pelotaPos);
+		//model = glm::scale(model, pelotaScale);
+		//model = glm::rotate(model, glm::radians(pelotaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Pelota.Draw(lightingShader);
 
-		// --- PLATANO 1 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, platano1Pos);
-		model = glm::scale(model, platano1Scale);
-		model = glm::rotate(model, glm::radians(platano1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Platano1.Draw(lightingShader);
+		//// --- PLATANO 1 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, platano1Pos);
+		//model = glm::scale(model, platano1Scale);
+		//model = glm::rotate(model, glm::radians(platano1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Platano1.Draw(lightingShader);
 
-		// --- PLATANO 2 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, platano2Pos);
-		model = glm::scale(model, platano2Scale);
-		model = glm::rotate(model, glm::radians(platano2Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Platano2.Draw(lightingShader);
+		//// --- PLATANO 2 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, platano2Pos);
+		//model = glm::scale(model, platano2Scale);
+		//model = glm::rotate(model, glm::radians(platano2Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Platano2.Draw(lightingShader);
 
-		// --- GATO ---
-		model = glm::mat4(1);
-		model = glm::translate(model, gatoPos);
-		model = glm::scale(model, gatoScale);
-		model = glm::rotate(model, glm::radians(gatoRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Gato.Draw(lightingShader);
+		//// --- GATO ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, gatoPos);
+		//model = glm::scale(model, gatoScale);
+		//model = glm::rotate(model, glm::radians(gatoRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Gato.Draw(lightingShader);
 
-		// --- ÁRBOL MUERTO ---
-		model = glm::mat4(1);
-		model = glm::translate(model, arbolRamaPos);
-		model = glm::scale(model, arbolRamaScale);
-		model = glm::rotate(model, glm::radians(arbolRamaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		ArbolRama.Draw(lightingShader);
+		//// --- ÁRBOL MUERTO ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, arbolRamaPos);
+		//model = glm::scale(model, arbolRamaScale);
+		//model = glm::rotate(model, glm::radians(arbolRamaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//ArbolRama.Draw(lightingShader);
 
-		// --- RAMA ---
-		model = glm::mat4(1);
-		model = glm::translate(model, ramaSelvaPos);
-		model = glm::scale(model, ramaSelvaScale);
-		model = glm::rotate(model, glm::radians(ramaSelvaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		RamaSelva.Draw(lightingShader);
+		//// --- RAMA ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, ramaSelvaPos);
+		//model = glm::scale(model, ramaSelvaScale);
+		//model = glm::rotate(model, glm::radians(ramaSelvaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//RamaSelva.Draw(lightingShader);
 
-		//--- PLANTA 1 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, plantaSelva1Pos);
-		model = glm::scale(model, plantaSelva1Scale);
-		model = glm::rotate(model, glm::radians(plantaSelva1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		PlantaSelva1.Draw(lightingShader);
+		////--- PLANTA 1 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, plantaSelva1Pos);
+		//model = glm::scale(model, plantaSelva1Scale);
+		//model = glm::rotate(model, glm::radians(plantaSelva1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//PlantaSelva1.Draw(lightingShader);
 
-		//--- PLANTA 2 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, plantaSelva2Pos);
-		model = glm::scale(model, plantaSelva2Scale);
-		model = glm::rotate(model, glm::radians(plantaSelva2Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		PlantaSelva2.Draw(lightingShader);
+		////--- PLANTA 2 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, plantaSelva2Pos);
+		//model = glm::scale(model, plantaSelva2Scale);
+		//model = glm::rotate(model, glm::radians(plantaSelva2Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//PlantaSelva2.Draw(lightingShader);
 
-		// --- LOTO 1 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, loto1Pos);
-		model = glm::scale(model, loto1Scale);
-		model = glm::rotate(model, glm::radians(loto1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Loto1.Draw(lightingShader);
+		//// --- LOTO 1 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, loto1Pos);
+		//model = glm::scale(model, loto1Scale);
+		//model = glm::rotate(model, glm::radians(loto1Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Loto1.Draw(lightingShader);
 
-		// --- LOTO 2 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, loto2Pos);
-		model = glm::scale(model, loto2Scale);
-		model = glm::rotate(model, glm::radians(loto2Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Loto2.Draw(lightingShader);
+		//// --- LOTO 2 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, loto2Pos);
+		//model = glm::scale(model, loto2Scale);
+		//model = glm::rotate(model, glm::radians(loto2Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Loto2.Draw(lightingShader);
 
-		// --- LOTO 3 ---
-		model = glm::mat4(1);
-		model = glm::translate(model, loto3Pos);
-		model = glm::scale(model, loto3Scale);
-		model = glm::rotate(model, glm::radians(loto3Rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Loto3.Draw(lightingShader);
+		//// --- LOTO 3 ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, loto3Pos);
+		//model = glm::scale(model, loto3Scale);
+		//model = glm::rotate(model, glm::radians(loto3Rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Loto3.Draw(lightingShader);
 
-		// **** DIBUJO DEL CAPIBARA ****
-		model = glm::mat4(1);
-		model = glm::translate(model, capibaraPos);
-		model = glm::rotate(model, glm::radians(rotCapibara), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(capibaraScale));
-		modelTemp = model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_Cuerpo.Draw(lightingShader);
+		//// **** DIBUJO DEL CAPIBARA ****
+		//model = glm::mat4(1);
+		//model = glm::translate(model, capibaraPos);
+		//model = glm::rotate(model, glm::radians(rotCapibara), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(capibaraScale));
+		//modelTemp = model;
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_Cuerpo.Draw(lightingShader);
 
-		// Cabeza
-		glm::vec3 capibaraPivotCabeza(0.0f, 0.5f, 0.4f);
-		model = modelTemp;
-		model = glm::translate(model, capibaraPivotCabeza);
-		model = glm::rotate(model, glm::radians(capibaraCabezaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::translate(model, -capibaraPivotCabeza);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_Cabeza.Draw(lightingShader);
+		//// Cabeza
+		//glm::vec3 capibaraPivotCabeza(0.0f, 0.5f, 0.4f);
+		//model = modelTemp;
+		//model = glm::translate(model, capibaraPivotCabeza);
+		//model = glm::rotate(model, glm::radians(capibaraCabezaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::translate(model, -capibaraPivotCabeza);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_Cabeza.Draw(lightingShader);
 
-		// Pata delantera derecha
-		glm::vec3 capibaraPivotPataDelDer(0.2f, 0.3f, 0.3f);
-		model = modelTemp;
-		model = glm::translate(model, capibaraPivotPataDelDer);
-		model = glm::rotate(model, glm::radians(capibaraPataDelDer), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -capibaraPivotPataDelDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_PataDelDer.Draw(lightingShader);
+		//// Pata delantera derecha
+		//glm::vec3 capibaraPivotPataDelDer(0.2f, 0.3f, 0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, capibaraPivotPataDelDer);
+		//model = glm::rotate(model, glm::radians(capibaraPataDelDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -capibaraPivotPataDelDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_PataDelDer.Draw(lightingShader);
 
-		// Pata delantera izquierda
-		glm::vec3 capibaraPivotPataDelIzq(-0.2f, 0.3f, 0.3f);
-		model = modelTemp;
-		model = glm::translate(model, capibaraPivotPataDelIzq);
-		model = glm::rotate(model, glm::radians(capibaraPataDelIzq), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -capibaraPivotPataDelIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_PataDelIzq.Draw(lightingShader);
+		//// Pata delantera izquierda
+		//glm::vec3 capibaraPivotPataDelIzq(-0.2f, 0.3f, 0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, capibaraPivotPataDelIzq);
+		//model = glm::rotate(model, glm::radians(capibaraPataDelIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -capibaraPivotPataDelIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_PataDelIzq.Draw(lightingShader);
 
-		// Pata trasera derecha
-		glm::vec3 capibaraPivotPataTrasDer(0.2f, 0.3f, -0.3f);
-		model = modelTemp;
-		model = glm::translate(model, capibaraPivotPataTrasDer);
-		model = glm::rotate(model, glm::radians(capibaraPataTrasDer), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -capibaraPivotPataTrasDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_PataTrasDer.Draw(lightingShader);
+		//// Pata trasera derecha
+		//glm::vec3 capibaraPivotPataTrasDer(0.2f, 0.3f, -0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, capibaraPivotPataTrasDer);
+		//model = glm::rotate(model, glm::radians(capibaraPataTrasDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -capibaraPivotPataTrasDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_PataTrasDer.Draw(lightingShader);
 
-		// Pata trasera izquierda
-		glm::vec3 capibaraPivotPataTrasIzq(-0.2f, 0.3f, -0.3f);
-		model = modelTemp;
-		model = glm::translate(model, capibaraPivotPataTrasIzq);
-		model = glm::rotate(model, glm::radians(capibaraPataTrasIzq), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -capibaraPivotPataTrasIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_PataTrasIzq.Draw(lightingShader);
+		//// Pata trasera izquierda
+		//glm::vec3 capibaraPivotPataTrasIzq(-0.2f, 0.3f, -0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, capibaraPivotPataTrasIzq);
+		//model = glm::rotate(model, glm::radians(capibaraPataTrasIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -capibaraPivotPataTrasIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_PataTrasIzq.Draw(lightingShader);
 
-		// Naranja
-		glm::vec3 capibaraPivotNaranja(0.0f, 0.0f, 0.0f);
-		model = modelTemp;
-		model = glm::translate(model, capibaraPivotNaranja);
-		model = glm::rotate(model, glm::radians(capibaraNaranjaRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::translate(model, -capibaraPivotNaranja);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Capibara_Naranja.Draw(lightingShader);
+		//// Naranja
+		//glm::vec3 capibaraPivotNaranja(0.0f, 0.0f, 0.0f);
+		//model = modelTemp;
+		//model = glm::translate(model, capibaraPivotNaranja);
+		//model = glm::rotate(model, glm::radians(capibaraNaranjaRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::translate(model, -capibaraPivotNaranja);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Capibara_Naranja.Draw(lightingShader);
 
-		// CAPIBARA - ANIMACIÓN
-		if (animarCapibara)
-		{
-			float t = glfwGetTime() - startTimeCapibara;
+		//// CAPIBARA - ANIMACIÓN
+		//if (animarCapibara)
+		//{
+		//	float t = glfwGetTime() - startTimeCapibara;
 
-			// FASE 1: CAMINANDO (10 segundos)
-			if (t < 10.0f)
-			{
-				float totalDist = 7.0f;
-				capibaraPos.x = 11.0f - (t * (totalDist / 10.0f));
+		//	// FASE 1: CAMINANDO (10 segundos)
+		//	if (t < 10.0f)
+		//	{
+		//		float totalDist = 7.0f;
+		//		capibaraPos.x = 11.0f - (t * (totalDist / 10.0f));
 
-				// Movimiento de patas (caminata de cuadrúpedo)
-				float paso = sin(t * 6.0f);
-				capibaraPataDelDer = paso * 1.5f;
-				capibaraPataTrasDer = paso * 1.5f;
-				capibaraPataDelIzq = -paso * 1.5f;
-				capibaraPataTrasIzq = -paso * 1.5f;
+		//		// Movimiento de patas (caminata de cuadrúpedo)
+		//		float paso = sin(t * 6.0f);
+		//		capibaraPataDelDer = paso * 1.5f;
+		//		capibaraPataTrasDer = paso * 1.5f;
+		//		capibaraPataDelIzq = -paso * 1.5f;
+		//		capibaraPataTrasIzq = -paso * 1.5f;
 
-				// Naranja rotando mientras camina
-				capibaraNaranjaRot = t * 180.0f;
+		//		// Naranja rotando mientras camina
+		//		capibaraNaranjaRot = t * 180.0f;
 
-				capibaraCabezaRot = 0.0f;
-				rotCapibara = 180.0f;
-			}
-			// FASE 2: DETENIDO, COMIENDO (6 segundos)
-			else if (t < 16.0f)
-			{
-				float t2 = t - 10.0f;
-				capibaraPos.x = 4.0f;
+		//		capibaraCabezaRot = 0.0f;
+		//		rotCapibara = 180.0f;
+		//	}
+		//	// FASE 2: DETENIDO, COMIENDO (6 segundos)
+		//	else if (t < 16.0f)
+		//	{
+		//		float t2 = t - 10.0f;
+		//		capibaraPos.x = 4.0f;
 
-				// Patas deteniéndose gradualmente
-				capibaraPataDelDer = sin(t2 * 0.5f) * 2.0f;
-				capibaraPataDelIzq = -capibaraPataDelDer;
-				capibaraPataTrasDer = -capibaraPataDelDer;
-				capibaraPataTrasIzq = capibaraPataDelDer;
+		//		// Patas deteniéndose gradualmente
+		//		capibaraPataDelDer = sin(t2 * 0.5f) * 2.0f;
+		//		capibaraPataDelIzq = -capibaraPataDelDer;
+		//		capibaraPataTrasDer = -capibaraPataDelDer;
+		//		capibaraPataTrasIzq = capibaraPataDelDer;
 
-				// Naranja regresa a posición inicial
-				capibaraNaranjaRot = 1800.0f - (t2 * 300.0f);
+		//		// Naranja regresa a posición inicial
+		//		capibaraNaranjaRot = 1800.0f - (t2 * 300.0f);
 
-				capibaraCabezaRot = 0.0f;
-				rotCapibara = 180.0f;
-			}
-			// FASE 3: QUIETO
-			else
-			{
-				capibaraPos.x = 4.0f;
-				capibaraCabezaRot = 0.0f;
-				capibaraPataDelDer = capibaraPataDelIzq = 0.0f;
-				capibaraPataTrasDer = capibaraPataTrasIzq = 0.0f;
-				capibaraNaranjaRot = 0.0f;
-				rotCapibara = 180.0f;
-			}
-		}
+		//		capibaraCabezaRot = 0.0f;
+		//		rotCapibara = 180.0f;
+		//	}
+		//	// FASE 3: QUIETO
+		//	else
+		//	{
+		//		capibaraPos.x = 4.0f;
+		//		capibaraCabezaRot = 0.0f;
+		//		capibaraPataDelDer = capibaraPataDelIzq = 0.0f;
+		//		capibaraPataTrasDer = capibaraPataTrasIzq = 0.0f;
+		//		capibaraNaranjaRot = 0.0f;
+		//		rotCapibara = 180.0f;
+		//	}
+		//}
 
-		// **** DIBUJO DEL MONO ****
-		model = glm::mat4(1);
-		model = glm::translate(model, monoPos);
-		model = glm::rotate(model, glm::radians(rotMono), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(monoScale));
-		modelTemp = model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Mono_Cuerpo.Draw(lightingShader);
+		//// **** DIBUJO DEL MONO ****
+		//model = glm::mat4(1);
+		//model = glm::translate(model, monoPos);
+		//model = glm::rotate(model, glm::radians(rotMono), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(monoScale));
+		//modelTemp = model;
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Mono_Cuerpo.Draw(lightingShader);
 
-		// Cola
-		glm::vec3 monoPivotCola(0.0f, 0.5f, -0.4f);
-		model = modelTemp;
-		model = glm::translate(model, monoPivotCola);
-		model = glm::rotate(model, glm::radians(monoColaRot), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -monoPivotCola);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Mono_Cola.Draw(lightingShader);
+		//// Cola
+		//glm::vec3 monoPivotCola(0.0f, 0.5f, -0.4f);
+		//model = modelTemp;
+		//model = glm::translate(model, monoPivotCola);
+		//model = glm::rotate(model, glm::radians(monoColaRot), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -monoPivotCola);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Mono_Cola.Draw(lightingShader);
 
-		// Pata delantera derecha
-		glm::vec3 monoPivotPataDelDer(0.2f, 0.3f, 0.3f);
-		model = modelTemp;
-		model = glm::translate(model, monoPivotPataDelDer);
-		model = glm::rotate(model, glm::radians(monoPataDelDer), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -monoPivotPataDelDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Mono_PataDelDer.Draw(lightingShader);
+		//// Pata delantera derecha
+		//glm::vec3 monoPivotPataDelDer(0.2f, 0.3f, 0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, monoPivotPataDelDer);
+		//model = glm::rotate(model, glm::radians(monoPataDelDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -monoPivotPataDelDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Mono_PataDelDer.Draw(lightingShader);
 
-		// Pata delantera izquierda
-		glm::vec3 monoPivotPataDelIzq(-0.2f, 0.3f, 0.3f);
-		model = modelTemp;
-		model = glm::translate(model, monoPivotPataDelIzq);
-		model = glm::rotate(model, glm::radians(monoPataDelIzq), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -monoPivotPataDelIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Mono_PataDelIzq.Draw(lightingShader);
+		//// Pata delantera izquierda
+		//glm::vec3 monoPivotPataDelIzq(-0.2f, 0.3f, 0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, monoPivotPataDelIzq);
+		//model = glm::rotate(model, glm::radians(monoPataDelIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -monoPivotPataDelIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Mono_PataDelIzq.Draw(lightingShader);
 
-		// Pata trasera derecha
-		glm::vec3 monoPivotPataTrasDer(0.2f, 0.3f, -0.3f);
-		model = modelTemp;
-		model = glm::translate(model, monoPivotPataTrasDer);
-		model = glm::rotate(model, glm::radians(monoPataTrasDer), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -monoPivotPataTrasDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Mono_PataTrasDer.Draw(lightingShader);
+		//// Pata trasera derecha
+		//glm::vec3 monoPivotPataTrasDer(0.2f, 0.3f, -0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, monoPivotPataTrasDer);
+		//model = glm::rotate(model, glm::radians(monoPataTrasDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -monoPivotPataTrasDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Mono_PataTrasDer.Draw(lightingShader);
 
-		// Pata trasera izquierda
-		glm::vec3 monoPivotPataTrasIzq(-0.2f, 0.3f, -0.3f);
-		model = modelTemp;
-		model = glm::translate(model, monoPivotPataTrasIzq);
-		model = glm::rotate(model, glm::radians(monoPataTrasIzq), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -monoPivotPataTrasIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Mono_PataTrasIzq.Draw(lightingShader);
+		//// Pata trasera izquierda
+		//glm::vec3 monoPivotPataTrasIzq(-0.2f, 0.3f, -0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, monoPivotPataTrasIzq);
+		//model = glm::rotate(model, glm::radians(monoPataTrasIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -monoPivotPataTrasIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Mono_PataTrasIzq.Draw(lightingShader);
 
-		// MONO - ANIMACIÓN
-		if (animarMono)
-		{
-			float t = glfwGetTime() - startTimeMono;
+		//// MONO - ANIMACIÓN
+		//if (animarMono)
+		//{
+		//	float t = glfwGetTime() - startTimeMono;
 
-			// FASE 1: PRIMER BRINCO (1.5 segundos)
-			if (t < 1.5f)
-			{
-				float saltoCiclo = abs(sin(t * 2.094f));
-				monoPos.y = 0.0f + (saltoCiclo * 1.0f);
-				monoPos.x = 11.0f - (t * 1.5f);
+		//	// FASE 1: PRIMER BRINCO (1.5 segundos)
+		//	if (t < 1.5f)
+		//	{
+		//		float saltoCiclo = abs(sin(t * 2.094f));
+		//		monoPos.y = 0.0f + (saltoCiclo * 1.0f);
+		//		monoPos.x = 11.0f - (t * 1.5f);
 
-				// Patas recogidas durante el salto
-				monoPataDelDer = saltoCiclo * 8.0f;
-				monoPataDelIzq = saltoCiclo * 8.0f;
-				monoPataTrasDer = saltoCiclo * 8.0f;
-				monoPataTrasIzq = saltoCiclo * 8.0f;
+		//		// Patas recogidas durante el salto
+		//		monoPataDelDer = saltoCiclo * 8.0f;
+		//		monoPataDelIzq = saltoCiclo * 8.0f;
+		//		monoPataTrasDer = saltoCiclo * 8.0f;
+		//		monoPataTrasIzq = saltoCiclo * 8.0f;
 
-				// Cola levantada durante el salto
-				monoColaRot = 2.0f + (saltoCiclo * 1.5f);
-				rotMono = 180.0f;
-			}
-			// PAUSA 1: ATERRIZA (0.2 segundos)
-			else if (t < 1.7f)
-			{
-				monoPos.y = 0.0f;
-				monoPos.x = 8.75f;
-				monoPataDelDer = monoPataDelIzq = 0.0f;
-				monoPataTrasDer = monoPataTrasIzq = 0.0f;
-				monoColaRot = 0.5f;
-				rotMono = 180.0f;
-			}
-			// FASE 2: SEGUNDO BRINCO (1.5 segundos)
-			else if (t < 3.2f)
-			{
-				float t2 = t - 1.7f;
-				float saltoCiclo = abs(sin(t2 * 2.094f));
-				monoPos.y = 0.0f + (saltoCiclo * 1.0f);
-				monoPos.x = 8.75f - (t2 * 1.5f);
+		//		// Cola levantada durante el salto
+		//		monoColaRot = 2.0f + (saltoCiclo * 1.5f);
+		//		rotMono = 180.0f;
+		//	}
+		//	// PAUSA 1: ATERRIZA (0.2 segundos)
+		//	else if (t < 1.7f)
+		//	{
+		//		monoPos.y = 0.0f;
+		//		monoPos.x = 8.75f;
+		//		monoPataDelDer = monoPataDelIzq = 0.0f;
+		//		monoPataTrasDer = monoPataTrasIzq = 0.0f;
+		//		monoColaRot = 0.5f;
+		//		rotMono = 180.0f;
+		//	}
+		//	// FASE 2: SEGUNDO BRINCO (1.5 segundos)
+		//	else if (t < 3.2f)
+		//	{
+		//		float t2 = t - 1.7f;
+		//		float saltoCiclo = abs(sin(t2 * 2.094f));
+		//		monoPos.y = 0.0f + (saltoCiclo * 1.0f);
+		//		monoPos.x = 8.75f - (t2 * 1.5f);
 
-				// Patas recogidas durante el salto
-				monoPataDelDer = saltoCiclo * 8.0f;
-				monoPataDelIzq = saltoCiclo * 8.0f;
-				monoPataTrasDer = saltoCiclo * 8.0f;
-				monoPataTrasIzq = saltoCiclo * 8.0f;
+		//		// Patas recogidas durante el salto
+		//		monoPataDelDer = saltoCiclo * 8.0f;
+		//		monoPataDelIzq = saltoCiclo * 8.0f;
+		//		monoPataTrasDer = saltoCiclo * 8.0f;
+		//		monoPataTrasIzq = saltoCiclo * 8.0f;
 
-				// Cola levantada durante el salto
-				monoColaRot = 2.0f + (saltoCiclo * 1.5f);
-				rotMono = 180.0f;
-			}
-			// PAUSA 2: ATERRIZA (0.2 segundos)
-			else if (t < 3.4f)
-			{
-				monoPos.y = 0.0f;
-				monoPos.x = 6.5f;
-				monoPataDelDer = monoPataDelIzq = 0.0f;
-				monoPataTrasDer = monoPataTrasIzq = 0.0f;
-				monoColaRot = 0.5f;
-				rotMono = 180.0f;
-			}
-			// FASE 3: TERCER BRINCO (1.5 segundos)
-			else if (t < 4.9f)
-			{
-				float t3 = t - 3.4f;
-				float saltoCiclo = abs(sin(t3 * 2.094f));
-				monoPos.y = 0.0f + (saltoCiclo * 1.0f);
-				monoPos.x = 6.5f - (t3 * 1.5f);
+		//		// Cola levantada durante el salto
+		//		monoColaRot = 2.0f + (saltoCiclo * 1.5f);
+		//		rotMono = 180.0f;
+		//	}
+		//	// PAUSA 2: ATERRIZA (0.2 segundos)
+		//	else if (t < 3.4f)
+		//	{
+		//		monoPos.y = 0.0f;
+		//		monoPos.x = 6.5f;
+		//		monoPataDelDer = monoPataDelIzq = 0.0f;
+		//		monoPataTrasDer = monoPataTrasIzq = 0.0f;
+		//		monoColaRot = 0.5f;
+		//		rotMono = 180.0f;
+		//	}
+		//	// FASE 3: TERCER BRINCO (1.5 segundos)
+		//	else if (t < 4.9f)
+		//	{
+		//		float t3 = t - 3.4f;
+		//		float saltoCiclo = abs(sin(t3 * 2.094f));
+		//		monoPos.y = 0.0f + (saltoCiclo * 1.0f);
+		//		monoPos.x = 6.5f - (t3 * 1.5f);
 
-				// Patas recogidas durante el salto
-				monoPataDelDer = saltoCiclo * 8.0f;
-				monoPataDelIzq = saltoCiclo * 8.0f;
-				monoPataTrasDer = saltoCiclo * 8.0f;
-				monoPataTrasIzq = saltoCiclo * 8.0f;
+		//		// Patas recogidas durante el salto
+		//		monoPataDelDer = saltoCiclo * 8.0f;
+		//		monoPataDelIzq = saltoCiclo * 8.0f;
+		//		monoPataTrasDer = saltoCiclo * 8.0f;
+		//		monoPataTrasIzq = saltoCiclo * 8.0f;
 
-				// Cola levantada durante el salto
-				monoColaRot = 2.0f + (saltoCiclo * 1.5f);
-				rotMono = 180.0f;
-			}
-			// FASE 4: CAMINANDO (1 segundo)
-			else if (t < 5.9f)
-			{
-				float t4 = t - 4.9f;
-				monoPos.y = 0.0f;
-				monoPos.x = 4.25f - (t4 * 1.0f);
+		//		// Cola levantada durante el salto
+		//		monoColaRot = 2.0f + (saltoCiclo * 1.5f);
+		//		rotMono = 180.0f;
+		//	}
+		//	// FASE 4: CAMINANDO (1 segundo)
+		//	else if (t < 5.9f)
+		//	{
+		//		float t4 = t - 4.9f;
+		//		monoPos.y = 0.0f;
+		//		monoPos.x = 4.25f - (t4 * 1.0f);
 
-				// Movimiento de patas (caminata de cuadrúpedo)
-				float paso = sin(t4 * 6.0f);
-				monoPataDelDer = paso * 2.0f;
-				monoPataTrasDer = paso * 2.0f;
-				monoPataDelIzq = -paso * 2.0f;
-				monoPataTrasIzq = -paso * 2.0f;
+		//		// Movimiento de patas (caminata de cuadrúpedo)
+		//		float paso = sin(t4 * 6.0f);
+		//		monoPataDelDer = paso * 2.0f;
+		//		monoPataTrasDer = paso * 2.0f;
+		//		monoPataDelIzq = -paso * 2.0f;
+		//		monoPataTrasIzq = -paso * 2.0f;
 
-				// Cola moviéndose mientras camina
-				monoColaRot = sin(t4 * 2.0f) * 2.0f;
-				rotMono = 180.0f;
-			}
-			// FASE 5: QUIETO
-			else
-			{
-				monoPos.x = 3.f;
-				monoPos.y = 0.0f;
-				monoColaRot = 0.0f;
-				monoPataDelDer = monoPataDelIzq = 0.0f;
-				monoPataTrasDer = monoPataTrasIzq = 0.0f;
-				rotMono = 180.0f;
-			}
-		}
+		//		// Cola moviéndose mientras camina
+		//		monoColaRot = sin(t4 * 2.0f) * 2.0f;
+		//		rotMono = 180.0f;
+		//	}
+		//	// FASE 5: QUIETO
+		//	else
+		//	{
+		//		monoPos.x = 3.f;
+		//		monoPos.y = 0.0f;
+		//		monoColaRot = 0.0f;
+		//		monoPataDelDer = monoPataDelIzq = 0.0f;
+		//		monoPataTrasDer = monoPataTrasIzq = 0.0f;
+		//		rotMono = 180.0f;
+		//	}
+		//}
 
-		// **** DIBUJO DE LA GUACAMAYA ****
-		model = glm::mat4(1);
-		model = glm::translate(model, guacamayaPos);
-		model = glm::rotate(model, glm::radians(rotGuacamaya), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(guacamayaScale));
-		modelTemp = model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Ave_Cuerpo.Draw(lightingShader);
+		//// **** DIBUJO DE LA GUACAMAYA ****
+		//model = glm::mat4(1);
+		//model = glm::translate(model, guacamayaPos);
+		//model = glm::rotate(model, glm::radians(rotGuacamaya), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(guacamayaScale));
+		//modelTemp = model;
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Ave_Cuerpo.Draw(lightingShader);
 
-		// Ala derecha
-		glm::vec3 guacamayaPivotAlaDer(0.3f, 0.0f, 0.0f);
-		model = modelTemp;
-		model = glm::translate(model, guacamayaPivotAlaDer);
-		model = glm::rotate(model, glm::radians(guacamayaAlaDer), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -guacamayaPivotAlaDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Ave_AlaDer.Draw(lightingShader);
+		//// Ala derecha
+		//glm::vec3 guacamayaPivotAlaDer(0.3f, 0.0f, 0.0f);
+		//model = modelTemp;
+		//model = glm::translate(model, guacamayaPivotAlaDer);
+		//model = glm::rotate(model, glm::radians(guacamayaAlaDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -guacamayaPivotAlaDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Ave_AlaDer.Draw(lightingShader);
 
-		// Ala izquierda
-		glm::vec3 guacamayaPivotAlaIzq(-0.3f, 0.0f, 0.0f);
-		model = modelTemp;
-		model = glm::translate(model, guacamayaPivotAlaIzq);
-		model = glm::rotate(model, glm::radians(guacamayaAlaIzq), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -guacamayaPivotAlaIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Ave_AlaIzq.Draw(lightingShader);
+		//// Ala izquierda
+		//glm::vec3 guacamayaPivotAlaIzq(-0.3f, 0.0f, 0.0f);
+		//model = modelTemp;
+		//model = glm::translate(model, guacamayaPivotAlaIzq);
+		//model = glm::rotate(model, glm::radians(guacamayaAlaIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -guacamayaPivotAlaIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Ave_AlaIzq.Draw(lightingShader);
 
-		// GUACAMAYA - ANIMACIÓN
-		if (animarGuacamaya)
-		{
-			float t = glfwGetTime() - startTimeGuacamaya;
+		//// GUACAMAYA - ANIMACIÓN
+		//if (animarGuacamaya)
+		//{
+		//	float t = glfwGetTime() - startTimeGuacamaya;
 
-			// FASE 1: Volando (8 segundos)
-			if (t < 8.0f)
-			{
-				// Vuelo en línea recta
-				guacamayaPos.x = 11.1f - (t * 1.0f);
-				guacamayaPos.y = 1.55f;
-				guacamayaPos.z = 6.5f;
+		//	// FASE 1: Volando (8 segundos)
+		//	if (t < 8.0f)
+		//	{
+		//		// Vuelo en línea recta
+		//		guacamayaPos.x = 11.1f - (t * 1.0f);
+		//		guacamayaPos.y = 1.55f;
+		//		guacamayaPos.z = 6.5f;
 
-				// Aleteo suave
-				float aleteo = sin(t * 2.5f);
-				guacamayaAlaDer = aleteo * 5.0f;
-				guacamayaAlaIzq = -aleteo * 5.0f;
-				rotGuacamaya = 270.0f;
-			}
-			// FASE 2: Descendiendo hacia la rama (4 segundos)
-			else if (t < 12.0f)
-			{
-				float t2 = t - 8.0f;
-				guacamayaPos.x = 3.1f - (t2 * 0.025f);
-				guacamayaPos.y = 1.55f - (t2 * 0.2625f);
-				guacamayaPos.z = 6.5f;
+		//		// Aleteo suave
+		//		float aleteo = sin(t * 2.5f);
+		//		guacamayaAlaDer = aleteo * 5.0f;
+		//		guacamayaAlaIzq = -aleteo * 5.0f;
+		//		rotGuacamaya = 270.0f;
+		//	}
+		//	// FASE 2: Descendiendo hacia la rama (4 segundos)
+		//	else if (t < 12.0f)
+		//	{
+		//		float t2 = t - 8.0f;
+		//		guacamayaPos.x = 3.1f - (t2 * 0.025f);
+		//		guacamayaPos.y = 1.55f - (t2 * 0.2625f);
+		//		guacamayaPos.z = 6.5f;
 
-				// Alas casi quietas al planear
-				guacamayaAlaDer = 3.0f;
-				guacamayaAlaIzq = -3.0f;
-				rotGuacamaya = 270.0f;
-			}
-			// FASE 3: Posada en la rama
-			else
-			{
-				guacamayaPos.x = 3.0f;
-				guacamayaPos.y = 0.5f;
-				guacamayaPos.z = 6.5f;
-				guacamayaAlaDer = 0.0f;
-				guacamayaAlaIzq = 0.0f;
-				rotGuacamaya = 270.0f;
-			}
-		};
+		//		// Alas casi quietas al planear
+		//		guacamayaAlaDer = 3.0f;
+		//		guacamayaAlaIzq = -3.0f;
+		//		rotGuacamaya = 270.0f;
+		//	}
+		//	// FASE 3: Posada en la rama
+		//	else
+		//	{
+		//		guacamayaPos.x = 3.0f;
+		//		guacamayaPos.y = 0.5f;
+		//		guacamayaPos.z = 6.5f;
+		//		guacamayaAlaDer = 0.0f;
+		//		guacamayaAlaIzq = 0.0f;
+		//		rotGuacamaya = 270.0f;
+		//	}
+		//};
 
 		// ---------------------------------------------------------------------------------
 		// 							DIBUJO DE MODELOS SABANA (-x,-z)
@@ -1685,278 +1784,315 @@ int main()
 
 		DibujarPiso(pisoArenaTextureID, glm::vec3(-7.25f, -0.49f, 7.25f), glm::vec3(10.5f, 0.1f, 10.5f), VAO_Cubo, modelLoc);
 
-		// --- OASIS ---
-		model = glm::mat4(1);
-		model = glm::translate(model, oasisPos);
-		model = glm::scale(model, oasisScale);
-		model = glm::rotate(model, glm::radians(oasisRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Oasis.Draw(lightingShader);
+		//// --- OASIS ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, oasisPos);
+		//model = glm::scale(model, oasisScale);
+		//model = glm::rotate(model, glm::radians(oasisRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Oasis.Draw(lightingShader);
 
-		// --- HUESOS ---
-		model = glm::mat4(1);
-		model = glm::translate(model, huesosPos);
-		model = glm::scale(model, huesosScale);
-		model = glm::rotate(model, glm::radians(huesosRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Huesos.Draw(lightingShader);
+		//// --- HUESOS ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, huesosPos);
+		//model = glm::scale(model, huesosScale);
+		//model = glm::rotate(model, glm::radians(huesosRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Huesos.Draw(lightingShader);
 
-		// --- TRONCO ---
-		model = glm::mat4(1);
-		model = glm::translate(model, troncoPos);
-		model = glm::scale(model, troncoScale);
-		model = glm::rotate(model, glm::radians(troncoRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Tronco.Draw(lightingShader);
+		//// --- TRONCO ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, troncoPos);
+		//model = glm::scale(model, troncoScale);
+		//model = glm::rotate(model, glm::radians(troncoRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Tronco.Draw(lightingShader);
 
-		// --- CACTUS ---
-		model = glm::mat4(1);
-		model = glm::translate(model, cactusPos);
-		model = glm::scale(model, cactusScale);
-		model = glm::rotate(model, glm::radians(cactusRot), glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		Cactus.Draw(lightingShader);
+		//// --- CACTUS ---
+		//model = glm::mat4(1);
+		//model = glm::translate(model, cactusPos);
+		//model = glm::scale(model, cactusScale);
+		//model = glm::rotate(model, glm::radians(cactusRot), glm::vec3(0.0f, 1.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//Cactus.Draw(lightingShader);
 
-		// **** DIBUJO DE ANIMALES DESIERTO ****
+		//// **** DIBUJO DE ANIMALES DESIERTO ****
 
-		//CAMELLO
-
-
-		if (animarCamello)
-		{
-			float t = glfwGetTime() - startTimeCamello;
-
-			// CAMINANDO HACIA EL CACTUS
-			if (t < 8.0f)
-			{
-				// Movimiento de avance 
-				float totalDist = 10.0f - 5.0f; // distancia = 5 unidades
-				camelPos.z = 10.0f - (t * (totalDist / 8.0f)); // avanza desde Z=10 hasta Z=5
-
-				// Movimiento de patas (alternadas)
-				float paso = sin(t * 2.0f); // frecuencia lenta
-				camelLegFL = paso * 15.0f;  // pata frontal izq
-				camelLegBR = paso * 15.0f;  // pata trasera der
-				camelLegFR = -paso * 15.0f; // pata frontal der (opuesta)
-				camelLegBL = -paso * 15.0f; // pata trasera izq (opuesta)
-
-				// Cabeza 
-				camelHead = sin(t * 0.5f) * 1.3f; // leve movimiento
-				rotCamel = 180.0f;
-			}
-
-			// FASE 2: LLEGA AL CACTUS
-			else if (t < 14.0f)
-			{
-				float t2 = t - 8.0f;
-				camelPos.z = 5.0f; // está en el cactus 
-
-				// Detiene patas lentamente
-				camelLegFL = sin(t2 * 1.0f) * 5.0f;
-				camelLegFR = -camelLegFL;
-				camelLegBL = -camelLegFR;
-				camelLegBR = camelLegFR;
-
-				// Movimiento de cabeza simulando comer
-				camelHead = abs(sin(t2 * 1.5f)) * 2.9f; // baja y sube lento
-				rotCamel = 180.0f;
-			}
-
-			
-			else
-			{
-				camelPos.z = 5.0f;
-				camelHead = 0.0f;
-				camelLegFL = camelLegFR = camelLegBL = camelLegBR = 0.0f;
-				rotCamel = 180.0f;
-			}
-		}
+		////CAMELLO
 
 
-		model = glm::mat4(1);
-		model = glm::translate(model, camelPos);
-		model = glm::rotate(model, glm::radians(rotCamel), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(camelScale));
-		modelTemp = model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CamelBody.Draw(lightingShader);
+		//if (animarCamello)
+		//{
+		//	float t = glfwGetTime() - startTimeCamello;
 
-		// Cabeza
-		model = modelTemp;
-		model = glm::rotate(model, glm::radians(camelHead), glm::vec3(1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CamelHead.Draw(lightingShader);
+		//	// CAMINANDO HACIA EL CACTUS
+		//	if (t < 8.0f)
+		//	{
+		//		// Movimiento de avance 
+		//		float totalDist = 10.0f - 5.0f; // distancia = 5 unidades
+		//		camelPos.z = 10.0f - (t * (totalDist / 8.0f)); // avanza desde Z=10 hasta Z=5
 
-		// Pierna delantera izquierda
-		glm::vec3 camelPivotFL(0.3f, 1.2f, 0.5f);
-		model = modelTemp;
-		model = glm::translate(model, camelPivotFL);
-		model = glm::rotate(model, glm::radians(camelLegFL), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -camelPivotFL);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CamelLeg_FL.Draw(lightingShader);
+		//		// Movimiento de patas (alternadas)
+		//		float paso = sin(t * 2.0f); // frecuencia lenta
+		//		camelLegFL = paso * 15.0f;  // pata frontal izq
+		//		camelLegBR = paso * 15.0f;  // pata trasera der
+		//		camelLegFR = -paso * 15.0f; // pata frontal der (opuesta)
+		//		camelLegBL = -paso * 15.0f; // pata trasera izq (opuesta)
 
-		// Pierna delantera derecha
-		glm::vec3 camelPivotFR(-0.3f, 1.2f, 0.5f);
-		model = modelTemp;
-		model = glm::translate(model, camelPivotFR);
-		model = glm::rotate(model, glm::radians(camelLegFR), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -camelPivotFR);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CamelLeg_FR.Draw(lightingShader);
+		//		// Cabeza 
+		//		camelHead = sin(t * 0.5f) * 1.3f; // leve movimiento
+		//		rotCamel = 180.0f;
+		//	}
 
-		// Pierna trasera izquierda
-		glm::vec3 camelPivotBL(0.3f, 1.2f, -0.5f);
-		model = modelTemp;
-		model = glm::translate(model, camelPivotBL);
-		model = glm::rotate(model, glm::radians(camelLegBL), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -camelPivotBL);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CamelLeg_BL.Draw(lightingShader);
+		//	// FASE 2: LLEGA AL CACTUS
+		//	else if (t < 14.0f)
+		//	{
+		//		float t2 = t - 8.0f;
+		//		camelPos.z = 5.0f; // está en el cactus 
 
-		// Pierna trasera derecha
-		glm::vec3 camelPivotBR(-0.3f, 1.2f, -0.5f);
-		model = modelTemp;
-		model = glm::translate(model, camelPivotBR);
-		model = glm::rotate(model, glm::radians(camelLegBR), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -camelPivotBR);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CamelLeg_BR.Draw(lightingShader);
+		//		// Detiene patas lentamente
+		//		camelLegFL = sin(t2 * 1.0f) * 5.0f;
+		//		camelLegFR = -camelLegFL;
+		//		camelLegBL = -camelLegFR;
+		//		camelLegBR = camelLegFR;
 
+		//		// Movimiento de cabeza simulando comer
+		//		camelHead = abs(sin(t2 * 1.5f)) * 2.9f; // baja y sube lento
+		//		rotCamel = 180.0f;
+		//	}
 
-
-		//CONDOR
-
-		if (animarCondor)
-		{
-			float t = glfwGetTime();
-			condorAlaIzq = sin(t * 10.0f) * 1.5f;
-			condorAlaDer = -condorAlaIzq;
-			condorHead = sin(t * 8.0f) * 1.0f;
-			condorPos.y = 0.7f + sin(t * 0.8f) * 0.15f;
-		}
+		//	
+		//	else
+		//	{
+		//		camelPos.z = 5.0f;
+		//		camelHead = 0.0f;
+		//		camelLegFL = camelLegFR = camelLegBL = camelLegBR = 0.0f;
+		//		rotCamel = 180.0f;
+		//	}
+		//}
 
 
-		model = glm::mat4(1);
-		model = glm::translate(model, condorPos);
-		model = glm::rotate(model, glm::radians(rotCondor), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(condorScale));
-		modelTemp = model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CondorBody.Draw(lightingShader);
+		//model = glm::mat4(1);
+		//model = glm::translate(model, camelPos);
+		//model = glm::rotate(model, glm::radians(rotCamel), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(camelScale));
+		//modelTemp = model;
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CamelBody.Draw(lightingShader);
 
-		// Cabeza
-		model = modelTemp;
-		model = glm::rotate(model, glm::radians(condorHead), glm::vec3(1.0f, 0.0f, 0.0f));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CondorHead.Draw(lightingShader);
+		//// Cabeza
+		//model = modelTemp;
+		//model = glm::rotate(model, glm::radians(camelHead), glm::vec3(1.0f, 0.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CamelHead.Draw(lightingShader);
 
-		// Ala izquierda
-		glm::vec3 condorPivotAlaIzq(0.5f, 0.5f, 0.0f);
-		model = modelTemp;
-		model = glm::translate(model, condorPivotAlaIzq);
-		model = glm::rotate(model, glm::radians(condorAlaIzq), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -condorPivotAlaIzq);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CondorAla_Izq.Draw(lightingShader);
+		//// Pierna delantera izquierda
+		//glm::vec3 camelPivotFL(0.3f, 1.2f, 0.5f);
+		//model = modelTemp;
+		//model = glm::translate(model, camelPivotFL);
+		//model = glm::rotate(model, glm::radians(camelLegFL), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -camelPivotFL);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CamelLeg_FL.Draw(lightingShader);
 
-		// Ala derecha
-		glm::vec3 condorPivotAlaDer(-0.5f, 0.5f, 0.0f);
-		model = modelTemp;
-		model = glm::translate(model, condorPivotAlaDer);
-		model = glm::rotate(model, glm::radians(condorAlaDer), glm::vec3(0.0f, 0.0f, 1.0f));
-		model = glm::translate(model, -condorPivotAlaDer);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		CondorAla_Der.Draw(lightingShader);
+		//// Pierna delantera derecha
+		//glm::vec3 camelPivotFR(-0.3f, 1.2f, 0.5f);
+		//model = modelTemp;
+		//model = glm::translate(model, camelPivotFR);
+		//model = glm::rotate(model, glm::radians(camelLegFR), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -camelPivotFR);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CamelLeg_FR.Draw(lightingShader);
 
-		//TORTUGA
-		if (animarTortuga)
-		{
-			float t = glfwGetTime() - startTimeTortuga; // tiempo de animación
+		//// Pierna trasera izquierda
+		//glm::vec3 camelPivotBL(0.3f, 1.2f, -0.5f);
+		//model = modelTemp;
+		//model = glm::translate(model, camelPivotBL);
+		//model = glm::rotate(model, glm::radians(camelLegBL), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -camelPivotBL);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CamelLeg_BL.Draw(lightingShader);
 
-			//FASE 1: Camina hacia el agua
-			if (t < 2.5f)
-			{
-				tortugaPos.x = -7.8f - (t * 0.08f);
-				tortugaPos.y = -0.18f;
-				rotTortuga = 0.0f;
-				tortugaScale = 0.20f;
-			}
-			//FASE 2: Empieza a sumergirse
-			else if (t < 6.0f)
-			{
-				float t2 = t - 2.5f;
-				tortugaPos.x = -8.0f - (t2 * 0.4f);    // avanza en el agua 
-				tortugaPos.y = -0.18f - (t2 * 0.07f);  // baja más suave
-				tortugaScale = 0.20f - (t2 * 0.012f);  // se achica 
-				rotTortuga = sin(t2 * 0.5f) * 5.0f;
-			}
-			//FASE 3: Sale del agua
-			else if (t < 9.0f)
-			{
-				float t3 = t - 6.0f;
-				tortugaPos.x = -9.4f - (t3 * 0.7f);              // sale del agua
-				tortugaPos.y = -0.425f + (t3 * 0.0483f);
-				tortugaScale = 0.19f + (t3 * 0.0033f);
-				rotTortuga = t3 * 60.0f;                         // empieza a girar 
-			}
-			//FASE FINAL: gira
-			else
-			{
-				tortugaPos.x = -11.5f;
-				tortugaPos.y = -0.28f;
-				tortugaScale = 0.20f;
-				rotTortuga = 180.0f;
-			}
-		}
-
-		model = glm::mat4(1);
-		model = glm::translate(model, tortugaPos);
-		model = glm::rotate(model, glm::radians(rotTortuga), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(tortugaScale));
-		modelTemp = model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		TortugaBody.Draw(lightingShader);
-
-		// Pata delantera izquierda
-		glm::vec3 tortugaPivotFL(0.2f, 0.3f, 0.3f);
-		model = modelTemp;
-		model = glm::translate(model, tortugaPivotFL);
-		model = glm::rotate(model, glm::radians(tortugaLegFL), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -tortugaPivotFL);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		TortugaLeg_FL.Draw(lightingShader);
-
-		// Pata delantera derecha
-		glm::vec3 tortugaPivotFR(-0.2f, 0.3f, 0.3f);
-		model = modelTemp;
-		model = glm::translate(model, tortugaPivotFR);
-		model = glm::rotate(model, glm::radians(tortugaLegFR), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = glm::translate(model, -tortugaPivotFR);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		TortugaLeg_FR.Draw(lightingShader);
+		//// Pierna trasera derecha
+		//glm::vec3 camelPivotBR(-0.3f, 1.2f, -0.5f);
+		//model = modelTemp;
+		//model = glm::translate(model, camelPivotBR);
+		//model = glm::rotate(model, glm::radians(camelLegBR), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -camelPivotBR);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CamelLeg_BR.Draw(lightingShader);
 
 
-		/*lightingShader.Use();
-		GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");*/
 
-		/*glUniform3f(objectColorLoc, 0.0f, 1.0f, 0.0f);*/
-		/*pataDraw(model, glm::vec3(0.1f, 1.3f, 0.1f), glm::vec3(14.5f, -0.5f, 9.5f), modelLoc, VAO_Cubo, armTextureID);
-		pataDraw(model, glm::vec3(0.1f, 1.3f, 0.1f), glm::vec3(-14.5f, -0.5f, 9.5f), modelLoc, VAO_Cubo, armTextureID);
-		pataDraw(model, glm::vec3(0.1f, 1.3f, 0.1f), glm::vec3(-14.5f, -0.5f, -9.5f), modelLoc, VAO_Cubo, armTextureID);
-		pataDraw(model, glm::vec3(0.1f, 1.3f, 0.1f), glm::vec3(14.5f, -0.5f, -9.5f), modelLoc, VAO_Cubo, armTextureID);
-		pataDraw(model, glm::vec3(0.1f, 0.5f, 0.1f), glm::vec3(0.5f, 0.5f, -0.5f), modelLoc, VAO_Cubo, armTextureID);
-		pataDraw(model, glm::vec3(0.5f, 0.1f, 0.5f), glm::vec3(0.5f, 3.0f, -0.5f), modelLoc, VAO_Cubo, armTextureID);
-		pataDraw(model, glm::vec3(80.0f, 4.0f, 0.2f), glm::vec3(0.0f, 0.41f, -120.0f), modelLoc, VAO_Cubo, armTextureID);//pared uno
-		pataDraw(model, glm::vec3(0.2f, 4.0f, 48.0f), glm::vec3(200.0f, 0.41f, 0.0f), modelLoc, VAO_Cubo, armTextureID);//pared de enfrente
-		pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(160.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de pinguino derecha
-		pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(120.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de foca derecha
-		pataDraw(model, glm::vec3(0.2f, 4.0f, 10.0f), glm::vec3(77.0f, 0.41f, -1.9f), modelLoc, VAO_Cubo, armTextureID);//pared de delfín derecha*/
+		////CONDOR
 
+		//if (animarCondor)
+		//{
+		//	float t = glfwGetTime();
+		//	condorAlaIzq = sin(t * 10.0f) * 1.5f;
+		//	condorAlaDer = -condorAlaIzq;
+		//	condorHead = sin(t * 8.0f) * 1.0f;
+		//	condorPos.y = 0.7f + sin(t * 0.8f) * 0.15f;
+		//}
+
+
+		//model = glm::mat4(1);
+		//model = glm::translate(model, condorPos);
+		//model = glm::rotate(model, glm::radians(rotCondor), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(condorScale));
+		//modelTemp = model;
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CondorBody.Draw(lightingShader);
+
+		//// Cabeza
+		//model = modelTemp;
+		//model = glm::rotate(model, glm::radians(condorHead), glm::vec3(1.0f, 0.0f, 0.0f));
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CondorHead.Draw(lightingShader);
+
+		//// Ala izquierda
+		//glm::vec3 condorPivotAlaIzq(0.5f, 0.5f, 0.0f);
+		//model = modelTemp;
+		//model = glm::translate(model, condorPivotAlaIzq);
+		//model = glm::rotate(model, glm::radians(condorAlaIzq), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -condorPivotAlaIzq);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CondorAla_Izq.Draw(lightingShader);
+
+		//// Ala derecha
+		//glm::vec3 condorPivotAlaDer(-0.5f, 0.5f, 0.0f);
+		//model = modelTemp;
+		//model = glm::translate(model, condorPivotAlaDer);
+		//model = glm::rotate(model, glm::radians(condorAlaDer), glm::vec3(0.0f, 0.0f, 1.0f));
+		//model = glm::translate(model, -condorPivotAlaDer);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//CondorAla_Der.Draw(lightingShader);
+
+		////TORTUGA
+		//if (animarTortuga)
+		//{
+		//	float t = glfwGetTime() - startTimeTortuga; // tiempo de animación
+
+		//	//FASE 1: Camina hacia el agua
+		//	if (t < 2.5f)
+		//	{
+		//		tortugaPos.x = -7.8f - (t * 0.08f);
+		//		tortugaPos.y = -0.18f;
+		//		rotTortuga = 0.0f;
+		//		tortugaScale = 0.20f;
+		//	}
+		//	//FASE 2: Empieza a sumergirse
+		//	else if (t < 6.0f)
+		//	{
+		//		float t2 = t - 2.5f;
+		//		tortugaPos.x = -8.0f - (t2 * 0.4f);    // avanza en el agua 
+		//		tortugaPos.y = -0.18f - (t2 * 0.07f);  // baja más suave
+		//		tortugaScale = 0.20f - (t2 * 0.012f);  // se achica 
+		//		rotTortuga = sin(t2 * 0.5f) * 5.0f;
+		//	}
+		//	//FASE 3: Sale del agua
+		//	else if (t < 9.0f)
+		//	{
+		//		float t3 = t - 6.0f;
+		//		tortugaPos.x = -9.4f - (t3 * 0.7f);              // sale del agua
+		//		tortugaPos.y = -0.425f + (t3 * 0.0483f);
+		//		tortugaScale = 0.19f + (t3 * 0.0033f);
+		//		rotTortuga = t3 * 60.0f;                         // empieza a girar 
+		//	}
+		//	//FASE FINAL: gira
+		//	else
+		//	{
+		//		tortugaPos.x = -11.5f;
+		//		tortugaPos.y = -0.28f;
+		//		tortugaScale = 0.20f;
+		//		rotTortuga = 180.0f;
+		//	}
+		//}
+
+		//model = glm::mat4(1);
+		//model = glm::translate(model, tortugaPos);
+		//model = glm::rotate(model, glm::radians(rotTortuga), glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::scale(model, glm::vec3(tortugaScale));
+		//modelTemp = model;
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//TortugaBody.Draw(lightingShader);
+
+		//// Pata delantera izquierda
+		//glm::vec3 tortugaPivotFL(0.2f, 0.3f, 0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, tortugaPivotFL);
+		//model = glm::rotate(model, glm::radians(tortugaLegFL), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -tortugaPivotFL);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//TortugaLeg_FL.Draw(lightingShader);
+
+		//// Pata delantera derecha
+		//glm::vec3 tortugaPivotFR(-0.2f, 0.3f, 0.3f);
+		//model = modelTemp;
+		//model = glm::translate(model, tortugaPivotFR);
+		//model = glm::rotate(model, glm::radians(tortugaLegFR), glm::vec3(1.0f, 0.0f, 0.0f));
+		//model = glm::translate(model, -tortugaPivotFR);
+		//glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		//TortugaLeg_FR.Draw(lightingShader);
+
+
+	
+		//-----------------------------------------------------------------
+		//------MODELOS HECHOS EN OPENGLM: MESA, SILLA Y MACETA --------
+
+		// =================================================================
+		// 						DIBUJO DE MESAS
+		// =================================================================
+
+		// --- Mesa 1 
+		glm::mat4 modeloMesa1 = glm::mat4(1.0f);
+		modeloMesa1 = glm::translate(modeloMesa1, glm::vec3(1.0f, 0.0f, 0.0f));
+		dibujarMesa(modeloMesa1, modelLoc, VAO_Cubo, armTextureID);// Dibujamos la mesa completa con una llamada
+
+		// --- Mesa 2 (Duplicada en otra parte) ---
+		glm::mat4 modeloMesa2 = glm::mat4(1.0f);// Creamos otra matriz de modelo
+		modeloMesa2 = glm::translate(modeloMesa2, glm::vec3(20.0f, 0.0f, 0.0f));// La movemos 20 unidades a la derecha
+		modeloMesa2 = glm::rotate(modeloMesa2, glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f));// Y la rotamos 30 grados para que se vea
+		dibujarMesa(modeloMesa2, modelLoc, VAO_Cubo, armTextureID);// Dibujamos la segunda mesa
+
+
+
+		// --- Silla 1 (en una posición específica) ---
+		glm::mat4 modeloSilla1 = glm::mat4(1.0f);
+		// Mueve la silla a la posición del mundo que quieras
+		// (Trasladamos el centro del asiento a (1.0, 0.5, 3.0))
+		modeloSilla1 = glm::translate(modeloSilla1, glm::vec3(1.0f, 0.5f, 3.0f));
+		// Rótala si quieres
+		modeloSilla1 = glm::rotate(modeloSilla1, glm::radians(-30.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		// Dibuja la silla completa
+		dibujarSilla(modeloSilla1, modelLoc, VAO_Cubo, armTextureID);
+
+
+		// --- Silla 2 (en otro lugar y más pequeña) ---
+		glm::mat4 modeloSilla2 = glm::mat4(1.0f);
+		modeloSilla2 = glm::translate(modeloSilla2, glm::vec3(-1.0f, 0.5f, 3.0f));
+		modeloSilla2 = glm::scale(modeloSilla2, glm::vec3(0.8f, 0.8f, 0.8f)); // 80% del tamaño
+
+		// Dibuja la segunda silla
+		dibujarSilla(modeloSilla2, modelLoc, VAO_Cubo, armTextureID);
+
+		//Maceta
+		// --- 1. Definir la transformación global para la maceta ---
+		glm::mat4 modeloMaceta = glm::mat4(1.0f);
+		modeloMaceta = glm::translate(modeloMaceta, glm::vec3(1.0f, -0.28f, 10.0f));// A. Trasladar la maceta a su posición original 
+		modeloMaceta = glm::rotate(modeloMaceta, glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));//B. Rotar la maceta
+		modeloMaceta = glm::scale(modeloMaceta, glm::vec3(0.5f, 0.5f, 0.5f));//C. Escalar la maceta
+		dibujarMacetaCompleta(modeloMaceta, modelLoc, VAO_Cubo,cafeTextureID, greenTextureID, amarilloTextureID);// --- 2. Dibujar la maceta completa con una sola llamada ---
+
+		glm::mat4 modeloMaceta2 = glm::mat4(1.0f);
+		modeloMaceta2 = glm::translate(modeloMaceta2, glm::vec3(-5.0f, 0.75f, 3.0f));
+		modeloMaceta2 = glm::scale(modeloMaceta2, glm::vec3(0.5f, 0.5f, 0.5f)); // Una maceta pequeña
+		dibujarMacetaCompleta(modeloMaceta2, modelLoc, VAO_Cubo,cafeTextureID, greenTextureID, amarilloTextureID);
 
 
 		lightingShader.Use(); // shader de iluminación 
-		
+		GLint objectColorLoc = glGetUniformLocation(lightingShader.Program, "objectColor");
 
 
 		// Swap the screen buffers
@@ -2037,7 +2173,6 @@ void DibujarPiso(GLuint textureID, glm::vec3 posicion, glm::vec3 escala, GLuint 
 
 	glBindVertexArray(0);
 }
-
 
 // Moves/alters the camera positions based on user input
 void DoMovement()
