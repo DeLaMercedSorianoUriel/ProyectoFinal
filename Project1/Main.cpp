@@ -338,6 +338,38 @@ void cuboDraw(glm::mat4 parentModel, glm::vec3 escala, glm::vec3 traslado, GLint
 	glBindVertexArray(0);
 }
 
+void dibujarPanel(glm::mat4 parentModel, glm::vec3 escala, glm::vec3 traslado,
+	GLint uniformModel, GLuint VAO, GLuint texturaID,
+	float anguloRadianes, glm::vec3 ejeRotacion)
+{
+	// 1. Crear la transformación LOCAL de este panel
+	glm::mat4 localModel = glm::mat4(1.0f);
+	localModel = glm::translate(localModel, traslado);    // 1. Mover
+	localModel = glm::rotate(localModel, anguloRadianes, ejeRotacion); // 2. Rotar
+	localModel = glm::scale(localModel, escala);      // 3. Escalar
+
+	// 2. Combinarla con la transformación del PADRE
+	glm::mat4 finalModel = parentModel * localModel;
+
+	// 3. Enviar el resultado final al shader
+	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(finalModel));
+
+	// 4. Dibujar
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texturaID);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texturaID);
+
+	glBindVertexArray(VAO);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+}
+
+
 //--------------------------------------------
 //Funciones de los modelos hechos en OpenGL
 // -------------------------------------------
@@ -467,6 +499,85 @@ void dibujarMesa(glm::mat4 parentModel, GLint modelLoc, GLuint VAO_Cubo, GLuint 
 		modelLoc, VAO_Cubo, armTextureID, 0.0f); //pata4
 }
 
+void dibujarCuarto(glm::mat4 parentModel, GLint modelLoc, GLuint VAO_Cubo,
+	GLuint paredesTextureID, GLuint techoTextureID, GLuint ventanaTextureID)
+{
+	// Dimensiones del cuarto
+	float anchoCuarto = 15.0f;
+	float altoCuarto = 8.0f;
+	float profCuarto = 15.0f;
+
+	// --- Piso ---
+	cuboDraw(parentModel, glm::vec3(anchoCuarto, 0.2f, profCuarto),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		modelLoc, VAO_Cubo, paredesTextureID, 0.0f);
+
+	// --- Paredes ---
+	// Pared Trasera (-Z)
+	cuboDraw(parentModel, glm::vec3(anchoCuarto, altoCuarto, 0.2f),
+		glm::vec3(0.0f, altoCuarto / 2.0f, -profCuarto / 2.0f),
+		modelLoc, VAO_Cubo, paredesTextureID, 0.0f);
+
+	// Pared Izquierda (-X)
+	cuboDraw(parentModel, glm::vec3(0.2f, altoCuarto, profCuarto),
+		glm::vec3(-anchoCuarto / 2.0f, altoCuarto / 2.0f, 0.0f),
+		modelLoc, VAO_Cubo, paredesTextureID, 0.0f);
+
+	// Pared Derecha (+X)
+	cuboDraw(parentModel, glm::vec3(0.2f, altoCuarto, profCuarto),
+		glm::vec3(anchoCuarto / 2.0f, altoCuarto / 2.0f, 0.0f),
+		modelLoc, VAO_Cubo, paredesTextureID, 0.0f);
+
+	// Pared Frontal (+Z) - Con hueco
+	float anchoParedFrontal = (anchoCuarto * 0.5f) - 2.0f;
+	cuboDraw(parentModel, glm::vec3(anchoParedFrontal, altoCuarto, 0.2f),
+		glm::vec3(-(anchoParedFrontal / 2.0f) - 2.0f, altoCuarto / 2.0f, profCuarto / 2.0f),
+		modelLoc, VAO_Cubo, paredesTextureID, 0.0f);
+	cuboDraw(parentModel, glm::vec3(anchoParedFrontal, altoCuarto, 0.2f),
+		glm::vec3((anchoParedFrontal / 2.0f) + 2.0f, altoCuarto / 2.0f, profCuarto / 2.0f),
+		modelLoc, VAO_Cubo, paredesTextureID, 0.0f);
+
+
+	// --- Techo en "V" Invertida ---
+	float anchoTecho = (anchoCuarto / 2.0f) + 1.0f;
+	float anguloInclinacion = glm::radians(35.0f);
+
+	// Panel Izquierdo
+	dibujarPanel(parentModel,
+		glm::vec3(anchoTecho, 0.2f, profCuarto),
+		glm::vec3(-anchoCuarto / 4.0f, altoCuarto, 0.0f),
+		modelLoc, VAO_Cubo, techoTextureID,
+		anguloInclinacion, glm::vec3(0.0f, 0.0f, 1.0f)
+	);
+
+	// Panel Derecho
+	dibujarPanel(parentModel,
+		glm::vec3(anchoTecho, 0.2f, profCuarto),
+		glm::vec3(anchoCuarto / 4.0f, altoCuarto, 0.0f),
+		modelLoc, VAO_Cubo, techoTextureID,
+		-anguloInclinacion, glm::vec3(0.0f, 0.0f, 1.0f)
+	);
+
+	// --- Ventana (Transparente) ---
+	// La dibujamos al final.
+
+	// 1. Activar Blending (Transparencia)
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// 2. Dibujar la ventana
+	cuboDraw(parentModel,
+		glm::vec3(4.0f, 4.0f, 0.1f), // Escala (ancho 4, alto 4)
+		glm::vec3(0.0f, altoCuarto / 2.0f, profCuarto / 2.0f), // Posición (centro del hueco)
+		modelLoc, VAO_Cubo, ventanaTextureID, 0.0f);
+
+	// 3. Desactivar Blending
+	glDisable(GL_BLEND);
+	glBindVertexArray(0);
+}
+
+
+
 
 int main()
 {
@@ -521,6 +632,17 @@ int main()
 	Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
 	Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
 
+	//------------------------------------
+	// Carga textura para los modelos en OpenGL
+	//------------------------------------
+	GLuint armTextureID = TextureFromFile("images/madera.jpg", ".");
+	GLuint greenTextureID = TextureFromFile("images/textverde.jpg", ".");
+	GLuint amarilloTextureID = TextureFromFile("images/textamarillo.jpg", ".");
+	GLuint cafeTextureID = TextureFromFile("images/cafe.jpg", ".");
+	GLuint techoTextureID = TextureFromFile("images/techo.jpg", ".");
+	GLuint paredesTextureID = TextureFromFile("images/pared.jpg", ".");
+	GLuint ventanaTextureID = TextureFromFile("images/window.png", ".");
+
 	// =================================================================================
 	// 						CARGA DE MODELOS - Acuario (X,-Z)
 	// =================================================================================
@@ -538,13 +660,6 @@ int main()
 	Model iglu((char*)"Models/iglu/iglu3d.obj");
 	Model huevo((char*)"Models/huevo/huevo.obj");
 	Model pino((char*)"Models/pino/nievepino.obj");*/
-
-	// Carga textura
-	GLuint armTextureID = TextureFromFile("images/madera.jpg", ".");
-	GLuint greenTextureID = TextureFromFile("images/textverde.jpg", ".");
-	GLuint amarilloTextureID = TextureFromFile("images/textamarillo.jpg", ".");
-	GLuint cafeTextureID = TextureFromFile("images/cafe.jpg", ".");
-
 
 	// =================================================================================
 	// 						CARGA DE MODELOS - Selva (X,Z)
@@ -650,11 +765,11 @@ int main()
 
 
 
-	// =================================================================================
-	// 						CARGA DE MODELOS - DESIERTO (-X,Z)
-	// =================================================================================
+	//// =================================================================================
+	//// 						CARGA DE MODELOS - DESIERTO (-X,Z)
+	//// =================================================================================
 
-	std::cout << "Cargando modelos..." << std::endl;
+	//std::cout << "Cargando modelos..." << std::endl;
 
 	//  ************ Codigo comentado para no cargar todo desde el inicio se descomenta al final *******
 
@@ -2038,7 +2153,7 @@ int main()
 
 	
 		//-----------------------------------------------------------------
-		//------MODELOS HECHOS EN OPENGLM: MESA, SILLA Y MACETA --------
+		//------MODELOS HECHOS EN OPENGL:  --------
 
 		// =================================================================
 		// 						DIBUJO DE MESAS
@@ -2089,6 +2204,23 @@ int main()
 		modeloMaceta2 = glm::translate(modeloMaceta2, glm::vec3(-5.0f, 0.75f, 3.0f));
 		modeloMaceta2 = glm::scale(modeloMaceta2, glm::vec3(0.5f, 0.5f, 0.5f)); // Una maceta pequeña
 		dibujarMacetaCompleta(modeloMaceta2, modelLoc, VAO_Cubo,cafeTextureID, greenTextureID, amarilloTextureID);
+
+
+		// --- Cuarto 1 (en el origen) ---
+		glm::mat4 modeloCuarto1 = glm::mat4(1.0f);
+		// (Opcional) Moverlo a donde quieras
+		// modeloCuarto1 = glm::translate(modeloCuarto1, glm::vec3(0.0f, 0.0f, 15.0f));
+
+		dibujarCuarto(modeloCuarto1, modelLoc, VAO_Cubo,
+			paredesTextureID, techoTextureID, ventanaTextureID);
+
+		// --- Cuarto 2 (en otro lugar y más pequeño) ---
+		glm::mat4 modeloCuarto2 = glm::mat4(1.0f);
+		modeloCuarto2 = glm::translate(modeloCuarto2, glm::vec3(-30.0f, 0.0f, 15.0f));
+		modeloCuarto2 = glm::scale(modeloCuarto2, glm::vec3(0.5f, 0.5f, 0.5f)); // Un cuarto a mitad de escala
+
+		dibujarCuarto(modeloCuarto2, modelLoc, VAO_Cubo,
+			paredesTextureID, techoTextureID, ventanaTextureID);
 
 
 		lightingShader.Use(); // shader de iluminación 
